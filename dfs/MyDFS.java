@@ -1,0 +1,210 @@
+package dfs;
+
+import java.io.FileNotFoundException;
+
+import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.List;
+
+import virtualdisk.MyVirtualDisk;
+import virtualdisk.VirtualDisk;
+
+import common.Constants;
+import common.DFileID;
+import common.INode;
+import dblockcache.DBuffer;
+import dblockcache.DBufferCache;
+import dblockcache.MyDBufferCache;
+
+public class MyDFS extends DFS {
+	
+	DBufferCache _bufferCache;
+	DFileID[] _fileIDs;
+	INode[] _iNodes;
+	
+	public MyDFS(String volName, boolean format) throws FileNotFoundException, IOException {
+		super(volName, format);
+		_bufferCache = new MyDBufferCache(Constants.NUM_OF_BLOCKS/2);
+		_fileIDs = new DFileID[Constants.MAX_NUM_FILES];
+		_iNodes = new INode[Constants.MAX_NUM_FILES];
+		this.readINodeRegion();
+	}
+	
+	public MyDFS(boolean format) throws FileNotFoundException, IOException {
+		this(Constants.vdiskName,format);
+	}
+
+	public MyDFS() throws FileNotFoundException, IOException {
+		this(Constants.vdiskName,false);
+	}
+	
+	private boolean iNodeNotUsed(byte[] iNodeBytes) {
+		for (byte b: iNodeBytes) {
+			if (b != 0) {
+				return false;
+			}
+		}
+		return true;
+	}
+	
+	private byte[] getSubArray(byte[] iNodeBytes, int start, int end) {
+		byte[] subArray = new byte[end-start+1];
+		int index = 0;
+		for (int i = start; i <= end; ++i, ++index) {
+			subArray[index] = iNodeBytes[i];
+		}
+		return subArray;
+	}
+	
+	private int[] getIntSubArray(byte[] iNodeBytes, int start, int end) {
+		byte[] subArray = getSubArray(iNodeBytes, start, end);
+		int[] intSubArray = new int[subArray.length/4];
+		for (int i = 0; i < subArray.length/4-1; ++i) {
+			byte[] intBytes = getSubArray(iNodeBytes, i+1, (i+1)*4);
+			ByteBuffer byteBuffer = ByteBuffer.wrap(intBytes);
+			intSubArray[i] = byteBuffer.getInt();
+		}
+		return intSubArray;
+	}
+	
+	private void readINodeRegion() throws IllegalArgumentException, FileNotFoundException, IOException {
+		for (int i = 0; i < _iNodes.length; ++i) {
+			byte[] iNodeBytes = new byte[Constants.INODE_SIZE];
+			DBuffer buffer = _bufferCache.getBlock(i+1); //block 0 reserved, start at 1
+			for (int k = 0; k < Constants.INODES_PER_BLOCK; ++k) {
+				buffer.read(iNodeBytes, k*Constants.INODE_SIZE, (k+1)*Constants.INODE_SIZE);
+				if (iNodeNotUsed(iNodeBytes)) {
+					continue;
+				} else {
+					// Convert bytes into iNode information
+					INode iNode = new INode(iNodeBytes);
+					_iNodes[i] = iNode;
+				}
+			}
+				
+		}
+	}
+	
+	
+	@Override
+	public boolean format() {
+		// TODO Auto-generated method stub
+		return false;
+	}
+
+	@Override
+	public DFileID createDFile() {
+		// Simple implementation for now: just file closest available ID
+		for (int i = 0; i < _fileIDs.length; ++i) {
+			if (_fileIDs[i] == null) {
+				_fileIDs[i] = new DFileID(i);
+				return _fileIDs[i];
+			}
+		}
+//		try {
+//			throw new Exception();
+//		} catch (Exception e) {
+//			System.err.println("No file was CREATED! No space.");
+//			e.printStackTrace();
+//		}
+//		
+		return null;
+	}
+
+	@Override
+	public void destroyDFile(DFileID dFID) {
+		// Improve implementation: slow algorithm right now
+		boolean destroyed = false; // for error checking
+		
+		for (int i = 0; i < _fileIDs.length; ++i) {
+			if (_fileIDs[i] == dFID) {
+				_fileIDs[i] = null;
+				destroyed = true;
+			}
+		}
+		
+//		if (!destroyed) {
+//			try {
+//				throw new Exception();
+//			} catch (Exception e) {
+//				System.err.println("No file was destroyed!");
+//				e.printStackTrace();
+//			}
+//		}
+//		
+	}
+	
+	
+	@Override
+	public int read(DFileID dFID, byte[] buffer, int startOffset, int count) throws IllegalArgumentException, FileNotFoundException, IOException {
+		int totalBytesRead = 0;
+		// 1. Get block IDs from the DFileID - use INodes
+		// REFACTOR HERE
+		INode iNode = _iNodes[dFID.getInt()];
+		if (iNode == null) {
+			System.out.println("FILE DOES NOT EXIST");
+		} else {
+			int[] blocks = iNode.getBlockArray();
+			int startBlock = startOffset / Constants.BLOCK_SIZE;
+			startOffset = startOffset % Constants.BLOCK_SIZE;
+			for (int i = startBlock; i < blocks.length; ++i) {
+				DBuffer dBuffer = _bufferCache.getBlock(blocks[i]);
+				int bytesRead = dBuffer.read(buffer, startOffset, count);
+				totalBytesRead += bytesRead;
+				if (count == bytesRead) {
+					break;
+				} else {
+					count -= bytesRead;
+					startOffset = 0;
+				}
+			}
+		}
+		return totalBytesRead;
+	}
+
+	@Override
+	public int write(DFileID dFID, byte[] buffer, int startOffset, int count) throws IllegalArgumentException, FileNotFoundException, IOException {
+		int totalBytesWritten = 0;
+		INode iNode = _iNodes[dFID.getInt()];
+		if (iNode == null) {
+			System.out.println("FILE DOES NOT EXIST");
+		} else {
+			int[] blocks = iNode.getBlockArray();
+			int startBlock = startOffset / Constants.BLOCK_SIZE;
+			startOffset = startOffset % Constants.BLOCK_SIZE;
+			for (int i = startBlock; i < blocks.length; ++i) {
+				DBuffer dBuffer = _bufferCache.getBlock(blocks[i]);
+				int bytesWritten = dBuffer.write(buffer, startOffset, count);
+				totalBytesWritten += bytesWritten;
+				if (count == bytesWritten) {
+					break;
+				} else {
+					count -= bytesWritten;
+					startOffset = 0;
+				}
+			}
+		}
+		return totalBytesWritten;
+	}
+
+	@Override
+	public int sizeDFile(DFileID dFID) {
+		INode iNode = _iNodes[dFID.getInt()];	
+		return iNode.getFileSize();
+	}
+
+	@Override
+	public List<DFileID> listAllDFiles() {
+		List<DFileID> dFiles = new ArrayList<DFileID>();
+		for (INode iNode: _iNodes) {
+			if (iNode != null) {
+				dFiles.add(iNode.getDFileID());
+			}
+		}
+		return dFiles;
+	}
+	
+}	
+	
+
