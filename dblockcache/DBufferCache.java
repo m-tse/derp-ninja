@@ -29,4 +29,12 @@ public abstract class DBufferCache {
 	 * The sync() method should maintain clean block copies in DBufferCache.
 	 */
 	public abstract void sync();
+	
+	/*
+	 * Added methods 
+	 */
+	public int getCacheSize() {
+		return new Integer(_cacheSize);
+	}
+	
 }

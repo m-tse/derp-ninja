@@ -42,48 +42,19 @@ public class MyDFS extends DFS {
 		this(Constants.vdiskName,false);
 	}
 	
-	private boolean iNodeNotUsed(byte[] iNodeBytes) {
-		for (byte b: iNodeBytes) {
-			if (b != 0) {
-				return false;
-			}
-		}
-		return true;
-	}
-	
-	private byte[] getSubArray(byte[] iNodeBytes, int start, int end) {
-		byte[] subArray = new byte[end-start+1];
-		int index = 0;
-		for (int i = start; i <= end; ++i, ++index) {
-			subArray[index] = iNodeBytes[i];
-		}
-		return subArray;
-	}
-	
-	private int[] getIntSubArray(byte[] iNodeBytes, int start, int end) {
-		byte[] subArray = getSubArray(iNodeBytes, start, end);
-		int[] intSubArray = new int[subArray.length/4];
-		for (int i = 0; i < subArray.length/4-1; ++i) {
-			byte[] intBytes = getSubArray(iNodeBytes, i+1, (i+1)*4);
-			ByteBuffer byteBuffer = ByteBuffer.wrap(intBytes);
-			intSubArray[i] = byteBuffer.getInt();
-		}
-		return intSubArray;
-	}
-	
 	private void readINodeRegion() throws IllegalArgumentException, FileNotFoundException, IOException {
 		for (int i = 0; i < _iNodes.length/Constants.INODES_PER_BLOCK; ++i) {
 			byte[] iNodeBytes = new byte[Constants.INODE_SIZE];
 			DBuffer buffer = _bufferCache.getBlock(i); 
 			for (int k = 0; k < Constants.INODES_PER_BLOCK; ++k) {
 				buffer.read(iNodeBytes, k*Constants.INODE_SIZE, (k+1)*Constants.INODE_SIZE);
-				if (iNodeNotUsed(iNodeBytes)) {
+				INode iNode = new INode(iNodeBytes);
+				if (iNode.isNotUsed()) {
 					System.out.println("MyDFS.readINodeRegion(): NOOOO");
 					continue;
 				} else {
 					System.out.println("MyDFS.readINodeRegion(): YESSS");
 					// Convert bytes into iNode information
-					INode iNode = new INode(iNodeBytes);
 					_iNodes[i] = iNode;
 					for (int n: iNode.getBlockArray()) {
 						_freeMap[n] = 1; // Not free
@@ -93,7 +64,6 @@ public class MyDFS extends DFS {
 				
 		}
 	}
-	
 	
 	@Override
 	public boolean format() {
@@ -115,37 +85,17 @@ public class MyDFS extends DFS {
 				return _fileIDs[i];
 			}
 		}
-//		try {
-//			throw new Exception();
-//		} catch (Exception e) {
-//			System.err.println("No file was CREATED! No space.");
-//			e.printStackTrace();
-//		}
-//		
 		return null;
 	}
 
 	@Override
 	public void destroyDFile(DFileID dFID) {
 		// Improve implementation: slow algorithm right now
-		boolean destroyed = false; // for error checking
-		
 		for (int i = 0; i < _fileIDs.length; ++i) {
 			if (_fileIDs[i] == dFID) {
 				_fileIDs[i] = null;
-				destroyed = true;
 			}
 		}
-		
-//		if (!destroyed) {
-//			try {
-//				throw new Exception();
-//			} catch (Exception e) {
-//				System.err.println("No file was destroyed!");
-//				e.printStackTrace();
-//			}
-//		}
-//		
 	}
 	
 	public int getNextFreeBlock() {
@@ -157,17 +107,14 @@ public class MyDFS extends DFS {
 		return 0;
 	}
 	
-	
-	
 	@Override
-	public int read(DFileID dFID, byte[] buffer, int startOffset, int count) throws IllegalArgumentException, FileNotFoundException, IOException {
+	public int read(DFileID dFID, byte[] buffer, int startOffset, int count) 
+			throws IllegalArgumentException, FileNotFoundException, IOException {
 		int totalBytesRead = 0;
-		// 1. Get block IDs from the DFileID - use INodes
 		// REFACTOR HERE
 		INode iNode = _iNodes[dFID.getInt()];
 		if (iNode == null) {
 			System.out.println("FILE DOES NOT EXIST");
-			
 		} else {
 			int[] blocks = iNode.getBlockArray();
 			int startBlock = startOffset / Constants.BLOCK_SIZE;

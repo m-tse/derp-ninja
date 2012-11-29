@@ -21,7 +21,6 @@ public class INode {
 	 * Bytes 8-255: Block array 
 	 */
 	
-	
 	public INode(byte[] iNodeBytes) {
 		byte[] fileIdBytes = new byte[4];
 		byte[] fileSizeBytes = new byte[4];
@@ -93,9 +92,7 @@ public class INode {
 		}
 				
 		System.out.println("getBytes() in INode.java: " + index);
-		
 		return iNodeBytes;
-		
 	}
 	
 	public INode(DFileID fileID) {
@@ -171,4 +168,13 @@ public class INode {
 
 	}
 
+	public boolean isNotUsed() {
+		for (int i: _blocks) {
+			if (i != 0) {
+				return false;
+			}
+		}
+		return true;
+	}
+	
 }
