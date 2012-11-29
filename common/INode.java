@@ -1,8 +1,11 @@
 package common;
 
-import java.lang.reflect.Array;
+import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
+
+import dblockcache.DBuffer;
+import dblockcache.DBufferCache;
 
 public class INode {
 
@@ -152,6 +155,20 @@ public class INode {
 		}
 		System.err.println("Could not find block in inode");
 	}
-	
-	
+
+	public void writeToDisk(DBufferCache bufferCache) {
+		byte[] iNodeBytes = this.getBytes();
+		int blockID = _fileID.getInt() / Constants.INODES_PER_BLOCK;
+		int iNodeOffset = Constants.INODE_SIZE * (_fileID.getInt() % Constants.INODES_PER_BLOCK);
+		DBuffer dBuffer = bufferCache.getBlock(blockID);
+		try {
+			dBuffer.write(iNodeBytes, iNodeOffset, iNodeBytes.length);
+			System.out.println("MyDFS.createFileID(): " + blockID);
+			System.out.println("MyDFS.createFileID(): " + iNodeOffset);
+		} catch (IllegalArgumentException | IOException e) {
+			e.printStackTrace();
+		}
+
+	}
+
 }

@@ -74,17 +74,19 @@ public class MyDFS extends DFS {
 	private void readINodeRegion() throws IllegalArgumentException, FileNotFoundException, IOException {
 		for (int i = 0; i < _iNodes.length/Constants.INODES_PER_BLOCK; ++i) {
 			byte[] iNodeBytes = new byte[Constants.INODE_SIZE];
-			DBuffer buffer = _bufferCache.getBlock(i+1); //block 0 reserved, start at 1
+			DBuffer buffer = _bufferCache.getBlock(i); 
 			for (int k = 0; k < Constants.INODES_PER_BLOCK; ++k) {
 				buffer.read(iNodeBytes, k*Constants.INODE_SIZE, (k+1)*Constants.INODE_SIZE);
 				if (iNodeNotUsed(iNodeBytes)) {
+					System.out.println("MyDFS.readINodeRegion(): NOOOO");
 					continue;
 				} else {
+					System.out.println("MyDFS.readINodeRegion(): YESSS");
 					// Convert bytes into iNode information
 					INode iNode = new INode(iNodeBytes);
 					_iNodes[i] = iNode;
 					for (int n: iNode.getBlockArray()) {
-						_freeMap[n-Constants.BLOCK_OFFSET] = 1; // Not free
+						_freeMap[n] = 1; // Not free
 					}
 				}
 			}
@@ -109,18 +111,7 @@ public class MyDFS extends DFS {
 				// Create INode
 				INode iNode = new INode(_fileIDs[i]);
 				_iNodes[i] = iNode;
-				byte[] iNodeBytes = iNode.getBytes();
-				int blockID = _fileIDs[i].getInt() / Constants.INODES_PER_BLOCK;
-				int iNodeOffset = Constants.INODE_SIZE * (_fileIDs[i].getInt() % Constants.INODES_PER_BLOCK);
-				DBuffer dBuffer = _bufferCache.getBlock(blockID);
-				try {
-					dBuffer.write(iNodeBytes, iNodeOffset, iNodeBytes.length);
-					System.out.println("MyDFS.createFileID(): " + blockID);
-					System.out.println("MyDFS.createFileID(): " + iNodeOffset);
-				} catch (IllegalArgumentException | IOException e) {
-					e.printStackTrace();
-				}
-				
+				iNode.writeToDisk(_bufferCache);
 				return _fileIDs[i];
 			}
 		}
@@ -217,6 +208,8 @@ public class MyDFS extends DFS {
 					iNode.addBlock(blocks[i]);
 					if (blocks[i] == 0) {
 						System.out.println("NO MORE BLOCKS AVAILABLE");
+					} else {
+						iNode.writeToDisk(_bufferCache);
 					}
 				}
 				DBuffer dBuffer = _bufferCache.getBlock(blocks[i]);

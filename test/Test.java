@@ -16,10 +16,10 @@ public class Test {
 		String s = "Hello DeFiler World!"; 
 		byte[] sBytes = s.getBytes();
 		byte[] rBytes = new byte[sBytes.length];
-		DFileID myFileID = dfs.createDFile();
-		dfs.write(myFileID, sBytes, 0, sBytes.length);
+//		DFileID myFileID = dfs.createDFile();
+//		dfs.write(myFileID, sBytes, 0, sBytes.length);
 	
-		dfs.read(myFileID, rBytes, 0, rBytes.length);
+		dfs.read(new DFileID(0), rBytes, 0, rBytes.length);
 		String sp = new String(rBytes);
 		
 		System.out.println(sp);
