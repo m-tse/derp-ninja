@@ -24,7 +24,7 @@ public abstract class VirtualDisk implements IVirtualDisk {
 	 * VirtualDisk Constructors
 	 */
 	public VirtualDisk(String volName, boolean format) throws FileNotFoundException,
-			IOException {
+	IOException {
 
 		_volName = volName;
 		_maxVolSize = Constants.BLOCK_SIZE * Constants.NUM_OF_BLOCKS;
@@ -47,12 +47,12 @@ public abstract class VirtualDisk implements IVirtualDisk {
 		}
 		/* Other methods as required */
 	}
-	
+
 	public VirtualDisk(boolean format) throws FileNotFoundException,
 	IOException {
 		this(Constants.vdiskName, format);
 	}
-	
+
 	public VirtualDisk() throws FileNotFoundException,
 	IOException {
 		this(Constants.vdiskName, false);
@@ -63,9 +63,14 @@ public abstract class VirtualDisk implements IVirtualDisk {
 	 * -- buf is an DBuffer object that needs to be read/write from/to the volume.	
 	 * -- operation is either READ or WRITE  
 	 */
-	public abstract void startRequest(DBuffer buf, DiskOperationType operation) throws IllegalArgumentException,
-			IOException;
-	
+	public void startRequest(DBuffer buf, DiskOperationType operation) throws IllegalArgumentException,
+	IOException
+	{
+		if(operation==DiskOperationType.READ)
+			readBlock(buf);
+		else writeBlock(buf);
+	}
+
 	/*
 	 * Clear the contents of the disk by writing 0s to it
 	 */
@@ -79,8 +84,8 @@ public abstract class VirtualDisk implements IVirtualDisk {
 				_file.write(b, 0, Constants.BLOCK_SIZE);
 			} catch (Exception e) {
 				System.out
-						.println("Error in format: WRITE operation failed at the device block "
-								+ i);
+				.println("Error in format: WRITE operation failed at the device block "
+						+ i);
 			}
 		}
 	}

@@ -7,6 +7,8 @@ public class myDBufferCache extends DBufferCache{
 
 	private final int cacheSize;
 	private HashMap<Integer,DBuffer> cache;
+	//we define the head (First) element to be the one in line for eviction
+	//we define the tail (last) element to be the latest used
 	private LinkedList<Integer> queue;
 
 	public myDBufferCache(int cacheSize) {
@@ -21,14 +23,20 @@ public class myDBufferCache extends DBufferCache{
 		//check if blockId is in the cache
 		if(cache.containsKey(blockID))
 		{
-			//update the list:
+			//update the queue:
 			queue.remove(blockID);
 			queue.addLast(blockID);
 			return cache.get(blockID);
 
 		}
-		//remove a block from cache
-		cache.put(queue.removeFirst(),null);
+		//otherwise load the block into the cache
+		//first check if we need to evict
+		if(cache.size()<cacheSize)
+		{
+			//cache is not full yet
+			
+		}
+		
 
 	}
 
