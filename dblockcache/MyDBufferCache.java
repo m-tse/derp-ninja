@@ -22,6 +22,7 @@ public class MyDBufferCache extends DBufferCache {
 	int count = 0 ;
 	@Override
 	public DBuffer getBlock(int blockID) {
+		++blockID; // Block 0 is reserved
 		DBuffer retrievedBlock = null;
 		if (!_bufferMemory.keySet().contains(blockID)) {
 			System.out.printf("%d: BLOCK ID DOES NOT EXIST\n", count);

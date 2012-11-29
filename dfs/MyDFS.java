@@ -22,12 +22,15 @@ public class MyDFS extends DFS {
 	DBufferCache _bufferCache;
 	DFileID[] _fileIDs;
 	INode[] _iNodes;
+	int[] _freeMap;
+	
 	
 	public MyDFS(String volName, boolean format) throws FileNotFoundException, IOException {
 		super(volName, format);
 		_bufferCache = new MyDBufferCache(Constants.NUM_OF_BLOCKS/2);
 		_fileIDs = new DFileID[Constants.MAX_NUM_FILES];
 		_iNodes = new INode[Constants.MAX_NUM_FILES];
+		_freeMap = new int[Constants.NUM_OF_BLOCKS-Constants.BLOCK_OFFSET]; // Block 0, 1-8 reserved 
 		this.readINodeRegion();
 	}
 	
@@ -69,7 +72,7 @@ public class MyDFS extends DFS {
 	}
 	
 	private void readINodeRegion() throws IllegalArgumentException, FileNotFoundException, IOException {
-		for (int i = 0; i < _iNodes.length; ++i) {
+		for (int i = 0; i < _iNodes.length/Constants.INODES_PER_BLOCK; ++i) {
 			byte[] iNodeBytes = new byte[Constants.INODE_SIZE];
 			DBuffer buffer = _bufferCache.getBlock(i+1); //block 0 reserved, start at 1
 			for (int k = 0; k < Constants.INODES_PER_BLOCK; ++k) {
@@ -80,6 +83,9 @@ public class MyDFS extends DFS {
 					// Convert bytes into iNode information
 					INode iNode = new INode(iNodeBytes);
 					_iNodes[i] = iNode;
+					for (int n: iNode.getBlockArray()) {
+						_freeMap[n-Constants.BLOCK_OFFSET] = 1; // Not free
+					}
 				}
 			}
 				
@@ -99,6 +105,22 @@ public class MyDFS extends DFS {
 		for (int i = 0; i < _fileIDs.length; ++i) {
 			if (_fileIDs[i] == null) {
 				_fileIDs[i] = new DFileID(i);
+				
+				// Create INode
+				INode iNode = new INode(_fileIDs[i]);
+				_iNodes[i] = iNode;
+				byte[] iNodeBytes = iNode.getBytes();
+				int blockID = _fileIDs[i].getInt() / Constants.INODES_PER_BLOCK;
+				int iNodeOffset = Constants.INODE_SIZE * (_fileIDs[i].getInt() % Constants.INODES_PER_BLOCK);
+				DBuffer dBuffer = _bufferCache.getBlock(blockID);
+				try {
+					dBuffer.write(iNodeBytes, iNodeOffset, iNodeBytes.length);
+					System.out.println("MyDFS.createFileID(): " + blockID);
+					System.out.println("MyDFS.createFileID(): " + iNodeOffset);
+				} catch (IllegalArgumentException | IOException e) {
+					e.printStackTrace();
+				}
+				
 				return _fileIDs[i];
 			}
 		}
@@ -135,6 +157,16 @@ public class MyDFS extends DFS {
 //		
 	}
 	
+	public int getNextFreeBlock() {
+		for (int i: _freeMap) {
+			if (i == 0) {
+				return i+Constants.BLOCK_OFFSET;
+			}
+		}
+		return 0;
+	}
+	
+	
 	
 	@Override
 	public int read(DFileID dFID, byte[] buffer, int startOffset, int count) throws IllegalArgumentException, FileNotFoundException, IOException {
@@ -144,11 +176,16 @@ public class MyDFS extends DFS {
 		INode iNode = _iNodes[dFID.getInt()];
 		if (iNode == null) {
 			System.out.println("FILE DOES NOT EXIST");
+			
 		} else {
 			int[] blocks = iNode.getBlockArray();
 			int startBlock = startOffset / Constants.BLOCK_SIZE;
 			startOffset = startOffset % Constants.BLOCK_SIZE;
 			for (int i = startBlock; i < blocks.length; ++i) {
+				System.out.println("MyDFS.read(): " + blocks[i]);
+				if (blocks[i] == 0) {
+					continue;
+				}
 				DBuffer dBuffer = _bufferCache.getBlock(blocks[i]);
 				int bytesRead = dBuffer.read(buffer, startOffset, count);
 				totalBytesRead += bytesRead;
@@ -160,6 +197,7 @@ public class MyDFS extends DFS {
 				}
 			}
 		}
+		System.out.println("MyDFS.read(): " + totalBytesRead);
 		return totalBytesRead;
 	}
 
@@ -174,6 +212,13 @@ public class MyDFS extends DFS {
 			int startBlock = startOffset / Constants.BLOCK_SIZE;
 			startOffset = startOffset % Constants.BLOCK_SIZE;
 			for (int i = startBlock; i < blocks.length; ++i) {
+				if (blocks[i] == 0) {
+					blocks[i] = this.getNextFreeBlock();
+					iNode.addBlock(blocks[i]);
+					if (blocks[i] == 0) {
+						System.out.println("NO MORE BLOCKS AVAILABLE");
+					}
+				}
 				DBuffer dBuffer = _bufferCache.getBlock(blocks[i]);
 				int bytesWritten = dBuffer.write(buffer, startOffset, count);
 				totalBytesWritten += bytesWritten;
@@ -185,6 +230,7 @@ public class MyDFS extends DFS {
 				}
 			}
 		}
+		System.out.println("MyDFS.write(): " + totalBytesWritten);
 		return totalBytesWritten;
 	}
 

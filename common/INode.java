@@ -54,6 +54,46 @@ public class INode {
 		}
 	}
 	
+	public byte[] getBytes() {
+		byte[] iNodeBytes = new byte[Constants.INODE_SIZE];
+		ByteBuffer bb;
+		byte[] result;
+		int index = 0;
+		
+		// FileID
+		bb = ByteBuffer.allocate(4);
+		bb.putInt(_fileID.getInt());
+		result = bb.array();
+		for (byte b: result) {
+			iNodeBytes[index] = b;
+			++index;
+		}		
+		
+		// File size
+		bb = ByteBuffer.allocate(4);
+		bb.putInt(_fileSize);
+		result = bb.array();
+		for (byte b: result) {
+			iNodeBytes[index] = b;
+			++index;
+		}		
+		
+		// Blocks 
+		for (int i: _blocks) {
+			bb = ByteBuffer.allocate(4);
+			bb.putInt(i);
+			result = bb.array();
+			for (byte b: result) {
+				iNodeBytes[index] = b;
+				++index;
+			}
+		}
+				
+		System.out.println("getBytes() in INode.java: " + index);
+		
+		return iNodeBytes;
+		
+	}
 	
 	public INode(DFileID fileID) {
 		_blocks = new int[Constants.MAX_FILE_BLOCK_SIZE]; // 62*4 bytes = 248 bytes

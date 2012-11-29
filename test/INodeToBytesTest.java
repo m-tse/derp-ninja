@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
 
+import common.Constants;
 import common.DFileID;
 import common.INode;
 
@@ -59,30 +60,30 @@ public class INodeToBytesTest {
 	
 	public static void readFile() throws IOException {
 		
-		RandomAccessFile file = new RandomAccessFile("test.dat", "rws");
-		byte[] iNodeBytes = new byte[28];
-		file.read(iNodeBytes);
+		RandomAccessFile file = new RandomAccessFile(Constants.vdiskName, "rws");
+		byte[] iNodeBytes = new byte[256+1024];
+		file.read(iNodeBytes, 0, 1024+256);
 		
 		byte[] fileSize1 = new byte[4];
 		byte[] fileSize2 = new byte[4];
 		for (int i = 0 ; i < 4; ++i) {
-			fileSize1[i] = iNodeBytes[i];
+			fileSize1[i] = iNodeBytes[i+1024];
 		}
 		ByteBuffer bb;
 		bb = ByteBuffer.wrap(fileSize1);
 		int fs1 = bb.getInt(); 
 		
 		for (int i = 4 ; i < 8; ++i) {
-			fileSize2[i-4] = iNodeBytes[i];
+			fileSize2[i-4] = iNodeBytes[i+1024];
 		}
 		bb = ByteBuffer.wrap(fileSize2);
 		int fs2 = bb.getInt(); 
 		
-		int[] iblocks = new int[5];
+		int[] iblocks = new int[62];
 		int index = 0;
 		byte[] blocks = new byte[4];
-		for (int i = 8 ; i < iNodeBytes.length; ++i) {
-			blocks[i%4] = iNodeBytes[i];
+		for (int i = 8 ; i < 256; ++i) {
+			blocks[i%4] = iNodeBytes[i+1024];
 			if ((i+1) % 4 == 0) {
 				bb = ByteBuffer.wrap(blocks);
 				int inte = bb.getInt(); 
@@ -92,6 +93,8 @@ public class INodeToBytesTest {
 			}
 		}
 		
+		System.out.println(fs1);
+		System.out.println(fs2);
 		for (int i : iblocks) {
 			System.out.println(i);
 		}
@@ -102,9 +105,7 @@ public class INodeToBytesTest {
 	
 	public static void main(String[] args) throws IOException {
 //		writeFile();
-//		readFile();
-		System.out.println(5 / 2);
-		System.out.println(4 / 3);
+		readFile();
 	}
 
 
