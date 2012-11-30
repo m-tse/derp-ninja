@@ -1,7 +1,6 @@
 package dblockcache;
 
 import java.io.IOException;
-import java.util.Arrays;
 
 import common.Constants;
 import common.Constants.DiskOperationType;
@@ -35,6 +34,8 @@ public class myDBuffer extends DBuffer{
 		//this is just starting a read request from the disk
 		try {
 			isInProgress=true;
+			isValid=false;
+			isClean=false;
 			disk.startRequest(this, DiskOperationType.READ);
 		} catch (IllegalArgumentException e) {
 			// TODO Auto-generated catch block
@@ -48,11 +49,12 @@ public class myDBuffer extends DBuffer{
 	@Override
 	public void startPush() {
 		//no need to write if it's already synced!
-		if(isValid)
+		if(isClean)
 			return;
 		
 		try {
 			isInProgress=true;
+			
 			disk.startRequest(this, DiskOperationType.WRITE);
 		} catch (IllegalArgumentException e) {
 			// TODO Auto-generated catch block
@@ -140,6 +142,7 @@ public class myDBuffer extends DBuffer{
 			return -1;
 		//mark dirty!
 		isClean=false;
+		
 		for(int x=0;x<count;x++)
 		{
 			myBuffer[x]=buffer[startOffset+x];
@@ -152,7 +155,9 @@ public class myDBuffer extends DBuffer{
 	public void ioComplete() {
 		isInProgress=false;
 		isValid=true;
-		//signal some shits
+		isClean=true;
+		cleanSignal.notifyAll();
+		validSignal.notifyAll();
 		
 	}
 
@@ -164,8 +169,7 @@ public class myDBuffer extends DBuffer{
 
 	@Override
 	public byte[] getBuffer() {
-		// TODO Auto-generated method stub
-		return null;
+		return myBuffer;
 	}
 
 }
