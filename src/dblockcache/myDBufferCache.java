@@ -75,7 +75,7 @@ public class myDBufferCache extends DBufferCache{
 			//what if we didnt find any block to evict??
 			if(evicted==-1)
 			{
-				throw new CacheException("cache is full, and no blocks are evictable");
+
 			}
 			//now we have an eviction candidate which is not busy	
 			DBuffer evictBuf=cache.get(evicted);
@@ -111,6 +111,7 @@ public class myDBufferCache extends DBufferCache{
 				buf.waitClean();//we'll just wait here
 			}
 		}
+
 	}
 	
 	
@@ -123,6 +124,7 @@ public class myDBufferCache extends DBufferCache{
 		{
 			super(message);
 		}
+
 	}
 
 }
