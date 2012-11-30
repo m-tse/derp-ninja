@@ -75,7 +75,7 @@ public class myDBufferCache extends DBufferCache{
 			//what if we didnt find any block to evict??
 			if(evicted==-1)
 			{
-				//throw an error or do a wait?
+
 			}
 			//now we have an eviction candidate which is not busy	
 			DBuffer evictBuf=cache.get(evicted);
@@ -111,6 +111,20 @@ public class myDBufferCache extends DBufferCache{
 				buf.waitClean();//we'll just wait here
 			}
 		}
+
+	}
+	
+	
+	public class CacheException extends RuntimeException
+	{
+		//herp derp?
+		private static final long serialVersionUID = 1L;
+
+		CacheException(String message)
+		{
+			super(message);
+		}
+
 	}
 
 }
