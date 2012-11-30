@@ -9,11 +9,19 @@ public class MyVirtualDisk extends VirtualDisk
 {
 	private static String volName;
 	private static MyVirtualDisk Instance;
-	public synchronized static MyVirtualDisk getInstance() throws FileNotFoundException, IOException
+	public synchronized static MyVirtualDisk getInstance() 
 	{
 		if(Instance==null)
 		{
-			Instance=new MyVirtualDisk();
+			try {
+				Instance=new MyVirtualDisk();
+			} catch (FileNotFoundException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
 		}
 		return Instance;
 	}

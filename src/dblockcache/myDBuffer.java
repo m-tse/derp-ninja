@@ -1,71 +1,165 @@
 package dblockcache;
 
-public class myDBuffer extends DBuffer{
+import java.io.IOException;
+import java.util.Arrays;
 
-	@Override
-	public void startFetch() {
-		// TODO Auto-generated method stub
+import common.Constants;
+import common.Constants.DiskOperationType;
+
+import virtualdisk.MyVirtualDisk;
+//TODO: what if we have two or more disk operations in progress????
+public class myDBuffer extends DBuffer{
+	private final MyVirtualDisk disk=MyVirtualDisk.getInstance();
+	private byte[] myBuffer;
+	private Object cleanSignal;
+	private Object validSignal;
+	private final int blockID;
+	private boolean isValid;
+	private boolean isClean;
+	private boolean isHeld;
+	private boolean isInProgress;
+	public myDBuffer(int blockID)
+	{
+		this.blockID=blockID;
+		myBuffer=new byte[Constants.BLOCK_SIZE];
+		cleanSignal=new Object();
+		validSignal=new Object();
+		isValid=false;
+		isClean=false;
+		isHeld=false;
+		isInProgress=false;
 		
+	}
+	/** Start an asynchronous fetch of associated block from the volume  */
+	public void startFetch(){
+		//this is just starting a read request from the disk
+		try {
+			isInProgress=true;
+			disk.startRequest(this, DiskOperationType.READ);
+		} catch (IllegalArgumentException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 	}
 
 	@Override
 	public void startPush() {
-		// TODO Auto-generated method stub
+		//no need to write if it's already synced!
+		if(isValid)
+			return;
 		
+		try {
+			isInProgress=true;
+			disk.startRequest(this, DiskOperationType.WRITE);
+		} catch (IllegalArgumentException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 	}
 
 	@Override
 	public boolean checkValid() {
-		// TODO Auto-generated method stub
-		return false;
+		return isValid;
 	}
 
 	@Override
-	public boolean waitValid() {
-		// TODO Auto-generated method stub
-		return false;
+	public boolean waitValid(){
+		synchronized(validSignal)
+		{
+			while(!isValid)
+			{
+				try {
+					validSignal.wait();
+				} catch (InterruptedException e) {
+					e.printStackTrace();
+					return false;
+				}
+			}
+		}
+		return true;
 	}
 
 	@Override
 	public boolean checkClean() {
-		// TODO Auto-generated method stub
-		return false;
+		return isClean;
 	}
 
 	@Override
 	public boolean waitClean() {
-		// TODO Auto-generated method stub
-		return false;
+		synchronized(cleanSignal)
+		{
+			while(!isClean)
+			{
+				try {
+					cleanSignal.wait();
+				} catch (InterruptedException e) {
+					e.printStackTrace();
+					return false;
+				}
+			}
+		}
+		return true;
 	}
 
 	@Override
 	public boolean isBusy() {
-		// TODO Auto-generated method stub
-		return false;
+		return (!isHeld)&&(!isInProgress);
 	}
 
 	@Override
 	public int read(byte[] buffer, int startOffset, int count) {
-		// TODO Auto-generated method stub
-		return 0;
+		if(!isValid) 
+			return -1;
+		//check that buffer can hold the requested data
+		if(startOffset+count>buffer.length)
+			return -1;
+		//check that count is within limits
+		if(count>Constants.BLOCK_SIZE)
+			return -1;
+		//do the copy
+		for(int x=0;x<count;x++)
+		{
+			buffer[startOffset+x]=myBuffer[x];
+		}
+		return count;
 	}
 
 	@Override
 	public int write(byte[] buffer, int startOffset, int count) {
-		// TODO Auto-generated method stub
-		return 0;
+		//check that we can fit the data
+		if(count>Constants.BLOCK_SIZE)
+			return -1;
+		//check the validity of parameters
+		if(startOffset+count>buffer.length)
+			return -1;
+		//mark dirty!
+		isClean=false;
+		for(int x=0;x<count;x++)
+		{
+			myBuffer[x]=buffer[startOffset+x];
+		}
+		return count;
+		
 	}
 
 	@Override
 	public void ioComplete() {
-		// TODO Auto-generated method stub
+		isInProgress=false;
+		isValid=true;
+		//signal some shits
 		
 	}
 
 	@Override
 	public int getBlockID() {
 		// TODO Auto-generated method stub
-		return 0;
+		return blockID;
 	}
 
 	@Override
