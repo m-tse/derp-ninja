@@ -23,7 +23,7 @@ public class myDBufferCache extends DBufferCache{
 	public myDBufferCache(int cacheSize) throws FileNotFoundException, IOException {
 		super(cacheSize);
 		this.cacheSize=cacheSize;
-		cache= new HashMap<Integer,DBuffer>();
+		cache= new HashMap<Integer,DBuffer>(cacheSize);
 		heldBlocks=new HashSet<Integer>();
 		queue= new LinkedList<Integer>();
 		disk=MyVirtualDisk.getInstance();

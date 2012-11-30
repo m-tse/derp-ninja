@@ -20,7 +20,7 @@ public abstract class VirtualDisk implements IVirtualDisk {
 	private RandomAccessFile _file;
 	private int _maxVolSize;
 
-	/*
+	/**
 	 * VirtualDisk Constructors
 	 */
 	public VirtualDisk(String volName, boolean format) throws FileNotFoundException,
@@ -29,14 +29,14 @@ public abstract class VirtualDisk implements IVirtualDisk {
 		_volName = volName;
 		_maxVolSize = Constants.BLOCK_SIZE * Constants.NUM_OF_BLOCKS;
 
-		/*
+		/**
 		 * mode: rws => Open for reading and writing, as with "rw", and also
 		 * require that every update to the file's content or metadata be
 		 * written synchronously to the underlying storage device.
 		 */
 		_file = new RandomAccessFile(_volName, "rws");
 
-		/*
+		/**
 		 * Set the length of the file to be NUM_OF_BLOCKS with each block of
 		 * size BLOCK_SIZE. setLength internally invokes ftruncate(2) syscall to
 		 * set the length.
@@ -58,20 +58,15 @@ public abstract class VirtualDisk implements IVirtualDisk {
 		this(Constants.vdiskName, false);
 	}
 
-	/*
+	/**
 	 * Start an asynchronous request to the underlying device/disk/volume. 
 	 * -- buf is an DBuffer object that needs to be read/write from/to the volume.	
 	 * -- operation is either READ or WRITE  
 	 */
-	public void startRequest(DBuffer buf, DiskOperationType operation) throws IllegalArgumentException,
-	IOException
-	{
-		if(operation==DiskOperationType.READ)
-			readBlock(buf);
-		else writeBlock(buf);
-	}
+	public abstract void startRequest(DBuffer buf, DiskOperationType operation) throws IllegalArgumentException,
+	IOException;
 
-	/*
+	/**
 	 * Clear the contents of the disk by writing 0s to it
 	 */
 	private void formatStore() {
@@ -90,7 +85,7 @@ public abstract class VirtualDisk implements IVirtualDisk {
 		}
 	}
 
-	/*
+	/**
 	 * helper function: setBuffer
 	 */
 	private static void setBuffer(byte value, byte b[], int bufSize) {
@@ -99,11 +94,11 @@ public abstract class VirtualDisk implements IVirtualDisk {
 		}
 	}
 
-	/*
+	/**
 	 * Reads the buffer associated with DBuffer to the underlying
 	 * device/disk/volume
 	 */
-	private int readBlock(DBuffer buf) throws IOException {
+	protected int readBlock(DBuffer buf) throws IOException {
 		int seekLen = buf.getBlockID() * Constants.BLOCK_SIZE;
 		/* Boundary check */
 		if (_maxVolSize < seekLen + Constants.BLOCK_SIZE) {
@@ -113,11 +108,11 @@ public abstract class VirtualDisk implements IVirtualDisk {
 		return _file.read(buf.getBuffer(), 0, Constants.BLOCK_SIZE);
 	}
 
-	/*
+	/**
 	 * Writes the buffer associated with DBuffer to the underlying
 	 * device/disk/volume
 	 */
-	private void writeBlock(DBuffer buf) throws IOException {
+	protected void writeBlock(DBuffer buf) throws IOException {
 		int seekLen = buf.getBlockID() * Constants.BLOCK_SIZE;
 		_file.seek(seekLen);
 		_file.write(buf.getBuffer(), 0, Constants.BLOCK_SIZE);

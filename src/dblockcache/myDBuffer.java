@@ -149,7 +149,10 @@ public class myDBuffer extends DBuffer{
 		isClean=false;
 		//we are now valid, if not so already
 		isValid=true;
-		validSignal.notifyAll();
+		synchronized(validSignal)
+		{
+			validSignal.notifyAll();
+		}
 		
 		for(int x=0;x<count;x++)
 		{
@@ -164,8 +167,14 @@ public class myDBuffer extends DBuffer{
 		isInProgress=false;
 		isValid=true;
 		isClean=true;
-		cleanSignal.notifyAll();
-		validSignal.notifyAll();
+		synchronized(cleanSignal)
+		{
+			cleanSignal.notifyAll();
+		}
+		synchronized(validSignal)
+		{
+			validSignal.notifyAll();
+		}
 		
 	}
 
