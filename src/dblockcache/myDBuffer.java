@@ -15,7 +15,6 @@ public class myDBuffer extends DBuffer{
 	private final int blockID;
 	private boolean isValid;
 	private boolean isClean;
-	//private boolean isHeld; //not needed: this is checked on cache level
 	private boolean isInProgress;
 	public myDBuffer(int blockID)
 	{
@@ -26,11 +25,12 @@ public class myDBuffer extends DBuffer{
 		isValid=false;
 		isClean=false;
 		isInProgress=false;
-		
+
 	}
 	/** Start an asynchronous fetch of associated block from the volume  */
 	public void startFetch(){
 		//this is just starting a read request from the disk
+
 		try {
 			//i/o op initiated to the disk
 			isInProgress=true;
@@ -46,6 +46,7 @@ public class myDBuffer extends DBuffer{
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
+		
 	}
 
 	@Override
@@ -53,7 +54,6 @@ public class myDBuffer extends DBuffer{
 		//no need to write if it's already synced!
 		if(isClean)
 			return;
-		
 		try {
 			// i/o op initiated on disk
 			isInProgress=true;
@@ -67,6 +67,7 @@ public class myDBuffer extends DBuffer{
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
+		
 	}
 
 	@Override
