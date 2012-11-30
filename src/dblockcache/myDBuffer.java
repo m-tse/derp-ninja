@@ -15,7 +15,6 @@ public class myDBuffer extends DBuffer{
 	private final int blockID;
 	private boolean isValid;
 	private boolean isClean;
-	private boolean isHeld;
 	private boolean isInProgress;
 	public myDBuffer(int blockID)
 	{
@@ -25,16 +24,19 @@ public class myDBuffer extends DBuffer{
 		validSignal=new Object();
 		isValid=false;
 		isClean=false;
-		isHeld=false;
 		isInProgress=false;
-		
+
 	}
 	/** Start an asynchronous fetch of associated block from the volume  */
 	public void startFetch(){
 		//this is just starting a read request from the disk
+
 		try {
+			//i/o op initiated to the disk
 			isInProgress=true;
+			//since we are fetching new data, the current version is no longer valid
 			isValid=false;
+			//not clean because not valid
 			isClean=false;
 			disk.startRequest(this, DiskOperationType.READ);
 		} catch (IllegalArgumentException e) {
@@ -44,6 +46,7 @@ public class myDBuffer extends DBuffer{
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
+		
 	}
 
 	@Override
@@ -51,10 +54,11 @@ public class myDBuffer extends DBuffer{
 		//no need to write if it's already synced!
 		if(isClean)
 			return;
-		
 		try {
+			// i/o op initiated on disk
 			isInProgress=true;
-			
+			//will be clean once IO completes
+			//is already valid
 			disk.startRequest(this, DiskOperationType.WRITE);
 		} catch (IllegalArgumentException e) {
 			// TODO Auto-generated catch block
@@ -63,6 +67,7 @@ public class myDBuffer extends DBuffer{
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
+		
 	}
 
 	@Override
@@ -111,7 +116,7 @@ public class myDBuffer extends DBuffer{
 
 	@Override
 	public boolean isBusy() {
-		return (!isHeld)&&(!isInProgress);
+		return (!isInProgress);
 	}
 
 	@Override
@@ -142,6 +147,9 @@ public class myDBuffer extends DBuffer{
 			return -1;
 		//mark dirty!
 		isClean=false;
+		//we are now valid, if not so already
+		isValid=true;
+		validSignal.notifyAll();
 		
 		for(int x=0;x<count;x++)
 		{
