@@ -43,7 +43,7 @@ public class Tester {
 
 	public static void after() {
 		MyDFS dfs = new MyDFS();
-
+		System.out.println(dfs.listAllDFiles().toString());
 		for (DFileID fID: dfs.listAllDFiles()) {
 			byte[] buffer = new byte[100];
 			dfs.read(fID, buffer, 0, buffer.length);

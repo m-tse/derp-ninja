@@ -19,7 +19,6 @@ public class MyDBufferCache extends DBufferCache {
 
 	@Override
 	public DBuffer getBlock(int blockID) {
-		++blockID; // Block 0 is reserved
 		MyDBuffer retrievedBuffer = null;
 		if (!_bufferMemory.keySet().contains(blockID)) {
 			retrievedBuffer = new MyDBuffer(blockID);

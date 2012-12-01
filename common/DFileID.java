@@ -16,5 +16,9 @@ public class DFileID {
 		_dFID = 0;
 	}
 	
+	public String toString() {
+		return "DFileID: " + _dFID;
+	}
+	
 	
 }

@@ -1,6 +1,7 @@
 package dfs;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import virtualdisk.MyVirtualDisk;
@@ -51,7 +52,7 @@ public class MyDFS extends DFS {
 			DBuffer buffer = _bufferCache.getBlock(i+1); // i+1 because block 0 reserved 
 			buffer.startFetch();
 			for (int k = 0; k < Constants.INODES_PER_BLOCK; ++k, ++fileID) {
-				buffer.read(iNodeBytes, k*Constants.INODE_SIZE, Constants.INODE_SIZE);
+				buffer.read(iNodeBytes, 0, Constants.INODE_SIZE);
 				INode iNode = new INode(iNodeBytes);
 				if (iNode.isNotUsed()) {
 					System.out.println("MyDFS.readINodeRegion(): NOOOO");
@@ -60,8 +61,8 @@ public class MyDFS extends DFS {
 					System.out.println("MyDFS.readINodeRegion(): YESSS");
 					System.out.println("- Got iNode for fileID: " + fileID);
 					// Convert bytes into iNode information
-					_iNodes[i] = iNode;
-					_fileIDs[fileID] = new DFileID(i);
+					_iNodes[fileID] = iNode;
+					_fileIDs[fileID] = new DFileID(fileID);
 					for (int n: iNode.getBlockArray()) {
 						_freeMap[n] = 1; // Not free
 					}
@@ -82,7 +83,7 @@ public class MyDFS extends DFS {
 		for (int i = 0; i < _fileIDs.length; ++i) {
 			if (_fileIDs[i] == null) {
 				_fileIDs[i] = new DFileID(i);
-				
+				System.out.println("CREATING FILE: " + i);
 				// Create INode
 				INode iNode = new INode(_fileIDs[i]);
 				_iNodes[i] = iNode;
@@ -124,10 +125,8 @@ public class MyDFS extends DFS {
 			System.out.println("MyDFS.read(): FILE DOES NOT EXIST");
 		} else {
 			int[] blocks = iNode.getBlockArray();
-			System.out.println(blocks);
-			int startBlock = startOffset / Constants.BLOCK_SIZE;
-			startOffset = startOffset % Constants.BLOCK_SIZE;
-			for (int i = startBlock; i < blocks.length; ++i) {
+			System.out.println(Arrays.toString(blocks));
+			for (int i = 0; i < blocks.length; ++i) {
 				System.out.println("MyDFS.read(): " + blocks[i]);
 				if (blocks[i] == 0) continue; 
 				DBuffer dBuffer = _bufferCache.getBlock(blocks[i]);
@@ -135,7 +134,6 @@ public class MyDFS extends DFS {
 				int bytesRead = dBuffer.read(buffer, startOffset, count);
 				totalBytesRead += bytesRead;
 				if (count == totalBytesRead) break;  
-				else startOffset = 0; // Only need to do this once though
 			}
 		}
 		System.out.println(new String(buffer));
@@ -191,7 +189,6 @@ public class MyDFS extends DFS {
 		List<DFileID> dFiles = new ArrayList<DFileID>();
 		for (INode iNode: _iNodes) {
 			if (iNode != null) {
-				System.out.println("HELLOO");
 				dFiles.add(iNode.getDFileID());
 			}
 		}
