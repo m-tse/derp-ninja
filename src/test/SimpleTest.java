@@ -16,18 +16,18 @@ public class SimpleTest {
 	 */
 	public static void main(String[] args) throws FileNotFoundException, IOException 
 	{
-		/*
-		MyVirtualDisk disk=MyVirtualDisk.getInstance();
-		myDBufferCache cache=new myDBufferCache(4);
-		DBuffer buf=cache.getBlock(0);
-		byte[] buffer=new byte[1024];
-		for(int x=0;x<256;x++)
-			buffer[x]=(byte) x;
-		buf.write(buffer, 0, 256);
-		//System.out.println("about to start push");
-		buf.startPush();
-		buf.waitClean();
-		*/
+//		
+//		MyVirtualDisk disk=MyVirtualDisk.getInstance();
+//		myDBufferCache cache=new myDBufferCache(4);
+//		DBuffer buf=cache.getBlock(0);
+//		byte[] buffer=new byte[1024];
+//		for(int x=0;x<256;x++)
+//			buffer[x]=(byte) x;
+//		buf.write(buffer, 0, 256);
+//		//System.out.println("about to start push");
+//		buf.startPush();
+//		buf.waitClean();
+//		
 		/*
 		byte[] buffer1=new byte[1024];
 		System.out.println(buf.read(buffer1, 0, 256));
