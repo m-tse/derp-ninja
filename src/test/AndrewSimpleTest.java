@@ -17,8 +17,8 @@ public class AndrewSimpleTest {
 		String s = "Hello DeFiler World!"; 
 		byte[] sBytes = s.getBytes();
 		byte[] rBytes = new byte[sBytes.length];
-//		DFileID myFileID = dfs.createDFile();
-//		dfs.write(myFileID, sBytes, 0, sBytes.length);
+		DFileID myFileID = dfs.createDFile();
+		dfs.write(myFileID, sBytes, 0, sBytes.length);
 
 		dfs.read(new DFileID(0), rBytes, 0, rBytes.length);
 		String sp = new String(rBytes);
