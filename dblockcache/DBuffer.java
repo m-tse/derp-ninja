@@ -32,7 +32,7 @@ public abstract class DBuffer {
 	 * count are for the buffer array, not the DBuffer. Upon an error, it should
 	 * return -1, otherwise return number of bytes read.
 	 */
-	public abstract int read(byte[] buffer, int startOffset, int count) throws IllegalArgumentException, FileNotFoundException, IOException;
+	public abstract int read(byte[] buffer, int startOffset, int count);
 
 	/*
 	 * writes into the DBuffer from the contents of buffer[] array. startOffset
@@ -40,7 +40,7 @@ public abstract class DBuffer {
 	 * Upon an error, it should return -1, otherwise return number of bytes
 	 * written.
 	 */
-	public abstract int write(byte[] buffer, int startOffset, int count) throws IllegalArgumentException, FileNotFoundException, IOException;
+	public abstract int write(byte[] buffer, int startOffset, int count);
 	
 	/* An upcall from VirtualDisk layer to inform the completion of an IO operation */
 	public abstract void ioComplete();

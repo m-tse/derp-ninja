@@ -12,4 +12,9 @@ public class DFileID {
 		return new Integer(_dFID);
 	}
 	
+	public void clearFileID() {
+		_dFID = 0;
+	}
+	
+	
 }

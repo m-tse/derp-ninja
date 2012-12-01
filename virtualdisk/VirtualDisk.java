@@ -77,6 +77,7 @@ public abstract class VirtualDisk implements IVirtualDisk {
 				int seekLen = i * Constants.BLOCK_SIZE;
 				_file.seek(seekLen);
 				_file.write(b, 0, Constants.BLOCK_SIZE);
+				System.out.println("FORMATTING");
 			} catch (Exception e) {
 				System.out
 						.println("Error in format: WRITE operation failed at the device block "

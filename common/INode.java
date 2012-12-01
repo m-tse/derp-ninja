@@ -133,7 +133,6 @@ public class INode {
 	}
 	
 	public void addBlock(int newBlock) {
-	// TODO: Crap algorithm, make better
 		for (int i = 0; i < _blocks.length; ++i) {
 			if (_blocks[i] == 0) {
 				_blocks[i] = newBlock;
@@ -160,14 +159,22 @@ public class INode {
 		DBuffer dBuffer = bufferCache.getBlock(blockID);
 		try {
 			dBuffer.write(iNodeBytes, iNodeOffset, iNodeBytes.length);
-			System.out.println("MyDFS.createFileID(): " + blockID);
-			System.out.println("MyDFS.createFileID(): " + iNodeOffset);
-		} catch (IllegalArgumentException | IOException e) {
+			dBuffer.startPush();
+			System.out.println("INode.writeToDisk(): " + blockID);
+			System.out.println("INode.writeToDisk(): " + iNodeOffset);
+		} catch (IllegalArgumentException e) {
 			e.printStackTrace();
 		}
 
 	}
 
+	public void clearINode() {
+		Arrays.fill(_blocks, 0);
+		_fileID.clearFileID();
+		_fileSize = 0;
+	}
+	
+	
 	public boolean isNotUsed() {
 		for (int i: _blocks) {
 			if (i != 0) {

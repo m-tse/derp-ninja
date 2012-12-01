@@ -17,24 +17,40 @@ public class MyVirtualDisk extends VirtualDisk implements Runnable {
 	 */
 	private static MyVirtualDisk myInstance;
 	
-	public static MyVirtualDisk getInstance() throws FileNotFoundException, IOException {
+	public static MyVirtualDisk getInstance() {
 		if (myInstance == null) {
-			myInstance = new MyVirtualDisk();
+			try {
+				myInstance = new MyVirtualDisk();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
 		}
 		return myInstance;
 	}
 	
+	public static boolean format() {
+		try {
+			myInstance = new MyVirtualDisk(true);
+			return true;
+		} catch (IOException e) {
+			e.printStackTrace();
+			return false;
+		}
+	}
+	
+	
 	/*
 	 * MyVirtualDisk Constructors
 	 */
-	
-	Queue<Request> _requestQueue;
+	private Queue<Request> _requestQueue;
 	
 	private MyVirtualDisk(String volName, boolean format) throws FileNotFoundException,
 			IOException {
 		super(volName, format);
 		_requestQueue = new LinkedList<Request>();
-		new Thread(this).start();
+		Thread t = new Thread(this);
+		t.setDaemon(true);
+		t.start();
 	}
 	
 	private MyVirtualDisk(boolean format) throws FileNotFoundException,
@@ -47,17 +63,32 @@ public class MyVirtualDisk extends VirtualDisk implements Runnable {
 	}
 	
 	@Override
-	public void startRequest(DBuffer buf, DiskOperationType operation)
-			throws IllegalArgumentException, IOException {
+	public void startRequest(DBuffer buf, DiskOperationType operation) {
 		Request nextRequest = new Request(buf, operation);
-		_requestQueue.add(nextRequest);
+		synchronized(this) {
+			_requestQueue.add(nextRequest);
+			this.notify();
+		}
 	}
+	
 
 	@Override
 	public void run() {
 		while (true) {
-			if (!_requestQueue.isEmpty()) {
-				Request nextRequest = _requestQueue.poll();
+			while (_requestQueue.isEmpty()) {
+				try {
+					synchronized(this) {
+						this.wait();
+					}
+				} catch (InterruptedException e) {
+					e.printStackTrace();
+				}
+			}
+			while (!_requestQueue.isEmpty()) {
+				Request nextRequest;
+				synchronized(this) {
+					nextRequest = _requestQueue.poll();
+				}
 				if (nextRequest.isRead()) {
 					try {
 						super.readBlock(nextRequest.getBuffer());
@@ -73,9 +104,9 @@ public class MyVirtualDisk extends VirtualDisk implements Runnable {
 				} else {
 					System.err.println("UKNOWN OPERATION");
 				}
+				nextRequest.getBuffer().ioComplete();
 			}
 		}
-		
 	}
 
 }

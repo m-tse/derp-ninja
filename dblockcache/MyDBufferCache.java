@@ -1,51 +1,73 @@
 package dblockcache;
 
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.Queue;
 
 public class MyDBufferCache extends DBufferCache {
 
-	private HashMap<Integer, DBuffer> _bufferMemory;
-	private Queue<DBuffer> _bufferQueue;
+	private HashMap<Integer, MyDBuffer> _bufferMemory;
+	private RestrictedQueue<MyDBuffer> _bufferQueue; // Custom class: queue of restricted size
 	
 	
-	public MyDBufferCache(int cacheSize) {
+	public MyDBufferCache(int cacheSize) { // cacheSize = number of blocks 
 		super(cacheSize);
-		_bufferMemory = new HashMap<Integer, DBuffer>();
-		_bufferQueue = new LinkedList<DBuffer>();
+		_bufferMemory = new HashMap<Integer, MyDBuffer>();
+		_bufferQueue = new RestrictedQueue<MyDBuffer>(cacheSize);
 	}
 
 	@Override
 	public DBuffer getBlock(int blockID) {
 		++blockID; // Block 0 is reserved
-		DBuffer retrievedBlock = null;
+		MyDBuffer retrievedBuffer = null;
 		if (!_bufferMemory.keySet().contains(blockID)) {
-			retrievedBlock = new MyDBuffer(blockID);
-			if (_bufferMemory.size() == super.getCacheSize()) { // Evict
-				DBuffer unpopularBuffer = _bufferQueue.poll();
-				_bufferMemory.remove(unpopularBuffer);
+			retrievedBuffer = new MyDBuffer(blockID);
+			if (_bufferMemory.size() == super.getCacheSize()) { // Need to evict one 
+				Iterator<MyDBuffer> find = _bufferQueue.iterator();
+				DBuffer unpopularBuffer = null;
+				while (find.hasNext()) {
+					unpopularBuffer = find.next();
+					if (unpopularBuffer.isBusy()) continue;
+					else break;
+				}
+				if (unpopularBuffer == null) { 
+					System.err.println("ALL BUFFERS BUSY");
+				} else { // Evict
+					_bufferMemory.remove(unpopularBuffer);
+					_bufferQueue.remove(unpopularBuffer);
+				}
 			} else if (_bufferMemory.size() > super.getCacheSize()) { // ERROR
 				System.err.println("CACHE OVERFLOW");
 			}
-			_bufferMemory.put(blockID, retrievedBlock);
+			_bufferMemory.put(blockID, retrievedBuffer);
+			_bufferQueue.add(retrievedBuffer);
+			retrievedBuffer.holdBuffer();
 		} else {
-			retrievedBlock = _bufferMemory.get(blockID);
-			_bufferQueue.remove(retrievedBlock);
-			_bufferQueue.add(retrievedBlock);
+			retrievedBuffer = _bufferMemory.get(blockID);
+			retrievedBuffer.holdBuffer();
+			_bufferQueue.remove(retrievedBuffer);
+			_bufferQueue.add(retrievedBuffer);
 		}
-		return retrievedBlock;
+		return retrievedBuffer;
 	}
 
 	@Override
 	public void releaseBlock(DBuffer buf) {
-		// TODO Auto-generated method stub
+		// Err this is fishy - Andrew
+		if (buf.getClass().isInstance(MyDBuffer.class)) {
+			((MyDBuffer) buf).releaseBuffer();
+		}
 	}
 
 	@Override
 	public void sync() {
-		// TODO Auto-generated method stub
+		for (MyDBuffer buf: _bufferQueue) {
+			if (!buf.checkClean()) {
+				buf.startPush();
+				buf.waitClean();
+			}
+		}
 		
 	}
-
 }
