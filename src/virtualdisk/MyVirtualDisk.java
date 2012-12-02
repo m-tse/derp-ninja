@@ -16,6 +16,9 @@ public class MyVirtualDisk extends VirtualDisk implements Runnable {
 	 * Singleton methods
 	 */
 	private static MyVirtualDisk myInstance;
+	private static Thread myThread;
+	private static boolean isRunning, isComplete;
+	private static Object doneSignal;
 	
 	public static MyVirtualDisk getInstance() {
 		if (myInstance == null) {
@@ -30,6 +33,9 @@ public class MyVirtualDisk extends VirtualDisk implements Runnable {
 	
 	public static boolean format() {
 		try {
+			if (myInstance == null) {
+				stopRunning();
+			}
 			myInstance = new MyVirtualDisk(true);
 			return true;
 		} catch (IOException e) {
@@ -37,6 +43,20 @@ public class MyVirtualDisk extends VirtualDisk implements Runnable {
 			return false;
 		}
 	}
+	
+	private static void stopRunning() {
+		isRunning = false;
+		while(!isComplete) {
+			synchronized(doneSignal) {
+				try {
+					doneSignal.wait();
+				} catch (InterruptedException e) {
+					e.printStackTrace();
+				}
+			}
+		}
+	}
+	
 	
 	
 	/*
@@ -48,9 +68,13 @@ public class MyVirtualDisk extends VirtualDisk implements Runnable {
 			IOException {
 		super(volName, format);
 		requestQueue = new LinkedList<Request>();
-		Thread t = new Thread(this);
-		t.setDaemon(true);
-		t.start();
+		isRunning = true;
+		isComplete = false;
+		doneSignal = new Object();
+		myThread = new Thread(this);
+		myThread.setDaemon(true);
+		myThread.start();
+		
 	}
 	
 	private MyVirtualDisk(boolean format) throws FileNotFoundException,
@@ -73,7 +97,7 @@ public class MyVirtualDisk extends VirtualDisk implements Runnable {
 
 	@Override
 	public void run() {
-		while (true) {
+		while (isRunning) {
 			while (requestQueue.isEmpty()) {
 				try {
 					synchronized(this) {
@@ -106,6 +130,11 @@ public class MyVirtualDisk extends VirtualDisk implements Runnable {
 				nextRequest.getBuffer().ioComplete();
 			}
 		}
+		synchronized(doneSignal) {
+			isComplete = true;
+			doneSignal.notify();
+		}
 	}
-
 }
+	
+	

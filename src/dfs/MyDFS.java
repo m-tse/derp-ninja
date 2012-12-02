@@ -21,7 +21,7 @@ public class MyDFS extends DFS {
 	// TODO: Update inode size
 	
 	
-	DBufferCache bufferCache;
+	MyDBufferCache bufferCache;
 	DFileID[] fileIDs;
 	INode[] iNodes;
 	int[] freeMap;
@@ -72,7 +72,7 @@ public class MyDFS extends DFS {
 					iNodes[fileID] = iNode;
 					fileIDs[fileID] = new DFileID(fileID);
 					for (int n: iNode.getBlockArray()) {
-						freeMap[n] = 1; // Not free
+						freeMap[n-Constants.BLOCK_OFFSET] = 1; // Not free, -offset account for block 0 and inode region
 					}
 				}
 			}
@@ -82,6 +82,7 @@ public class MyDFS extends DFS {
 	@Override
 	public boolean format() {
 		System.out.println("FORMATING IN DFS");
+		bufferCache.flush();
 		return MyVirtualDisk.format();
 	}
 
@@ -196,6 +197,7 @@ public class MyDFS extends DFS {
 				totalBytesWritten += bytesWritten;
 				iNode.increaseFileSize(bytesWritten);
 				dbuf.startPush();
+				dbuf.waitClean();
 				bufferCache.releaseBlock(dbuf);
 				System.out.println("MyDFS.write() PUSHED: " + dbuf.getBlockID());
 				if (count == bytesWritten) {

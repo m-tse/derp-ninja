@@ -9,6 +9,7 @@ package virtualdisk;
 import java.io.RandomAccessFile;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.util.Arrays;
 
 import common.Constants;
 import common.Constants.DiskOperationType;
@@ -84,6 +85,14 @@ public abstract class VirtualDisk implements IVirtualDisk {
 								+ i);
 			}
 		}
+		try {
+			byte[] c = new byte[(int) _file.length()];
+			_file.read(c, 0, (int) _file.length());
+			System.out.println(Arrays.toString(c));
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		
 	}
 
 	/*
@@ -116,4 +125,5 @@ public abstract class VirtualDisk implements IVirtualDisk {
 		_file.seek(seekLen);
 		_file.write(buf.getBuffer(), 0, Constants.BLOCK_SIZE);
 	}
+	
 }

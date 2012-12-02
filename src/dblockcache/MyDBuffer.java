@@ -41,6 +41,12 @@ public class MyDBuffer extends DBuffer {
 
 	public void clearBuffer() {
 		myBuffer = new byte[Constants.BLOCK_SIZE];
+		isHeld = false;
+		isValid = false;
+		isClean = false;
+		isFetching = false;
+		isPushing = false;
+		isPinned = false;
 	}
 	
 	@Override

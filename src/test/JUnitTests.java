@@ -166,7 +166,7 @@ public class JUnitTests {
 	public void testAsynchronousWritingClients(){
 		DFS myDFS = new MyDFS(true);
 		ArrayList<Integer> completeCounter = new ArrayList<Integer>();
-		int numWriterThreads = 10;
+		int numWriterThreads = 100;
 		for(int i = 0;i<numWriterThreads;i++){
 			WriterClient w = new WriterClient(i, myDFS, completeCounter);
 			w.run();
