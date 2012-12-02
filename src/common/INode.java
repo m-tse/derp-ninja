@@ -152,8 +152,6 @@ public class INode {
 
 	public void writeToBuffer(DBuffer dbuf) {
 		byte[] iNodeBytes = this.getBytes();
-		dbuf.startFetch();
-		dbuf.waitValid();
 		byte[] bufferBytes = dbuf.getBuffer();
 		int iNodeOffset = Constants.INODE_SIZE * (_fileID.getInt() % Constants.INODES_PER_BLOCK);
 		for (int i = 0; i < iNodeBytes.length; ++i) {

@@ -12,7 +12,6 @@ import common.INode;
 
 import dblockcache.DBuffer;
 import dblockcache.DBufferCache;
-import dblockcache.MyDBuffer;
 import dblockcache.MyDBufferCache;
 
 public class MyDFS extends DFS {
@@ -50,9 +49,15 @@ public class MyDFS extends DFS {
 		int fileID = 0;
 		for (int i = 0; i < iNodes.length/Constants.INODES_PER_BLOCK; ++i) {
 			DBuffer dbuf = bufferCache.getBlock(i+1); // i+1 because block 0 reserved 
+			if (!dbuf.checkValid()) {
+				dbuf.startFetch();
+				dbuf.waitValid();
+			}
 			System.out.println("MyDFS.readRegion() GETTING BLOCK " + (i+1));
-			dbuf.startFetch();
-			dbuf.waitValid();
+			if (!dbuf.checkValid()) {
+				dbuf.startFetch();
+				dbuf.waitValid();
+			}
 			byte[] bufferBytes = dbuf.getBuffer();
 			for (int k = 0; k < Constants.INODES_PER_BLOCK; ++k, ++fileID) {
 				INode iNode = new INode(Arrays.copyOfRange(
@@ -96,6 +101,10 @@ public class MyDFS extends DFS {
 				INode iNode = new INode(fileIDs[i]);
 				iNodes[i] = iNode;
 				DBuffer dbuf = bufferCache.getBlock(i/Constants.INODES_PER_BLOCK + 1);
+				if (!dbuf.checkValid()) {
+					dbuf.startFetch();
+					dbuf.waitValid();
+				}
 				iNode.writeToBuffer(dbuf);
 				return fileIDs[i];
 			}
@@ -120,7 +129,7 @@ public class MyDFS extends DFS {
 		for (int i = 0; i < freeMap.length; ++i) {
 			if (freeMap[i] == 0) {
 				freeMap[i] = 1;
-				return i+Constants.BLOCK_OFFSET;
+				return i+Constants.BLOCK_OFFSET; // includes block 0 and inode region
 			}
 		}
 		return 0;
@@ -173,6 +182,10 @@ public class MyDFS extends DFS {
 					if (blocks[i] == 0) System.out.println("MyDFS.write() NO MORE BLOCKS AVAILABLE");
 					else {
 						DBuffer dbuf = bufferCache.getBlock(fileID/Constants.INODES_PER_BLOCK + 1);
+						if (!dbuf.checkValid()) {
+							dbuf.startFetch();
+							dbuf.waitValid();
+						}
 						iNode.writeToBuffer(dbuf);
 					}
 				}
