@@ -27,6 +27,7 @@ public class JUnitTests {
 	 *  	- Read returns data that was most recently written 
 	 */
 	
+
 	
 	@Test
 	public void testBasicWriteThenRead() throws FileNotFoundException, IOException{
@@ -40,11 +41,72 @@ public class JUnitTests {
 		byte[] readBuffer = new byte[WrittenFromBuffer.length];
 		myDFS.read(newDFileID, readBuffer, 0, readBuffer.length);
 		//check that the read buffer equals the buffer we wrote with
-		assertTrue(readBuffer.equals(WrittenFromBuffer));
+		assertTrue(new String(readBuffer).equals(new String(WrittenFromBuffer)));
 		
 		
 		//Now test that multiple DFiles can be stored correctly and read/written from
 
+		
+		
+	}
+
+	@Test
+	public void testCreateAndDelete() throws FileNotFoundException, IOException{
+		DFS myDFS = new MyDFS(true);
+		int baseSize = myDFS.listAllDFiles().size();
+		assertTrue(myDFS.listAllDFiles().size()==baseSize); //myDFS listDFile should be empty at start
+		DFileID newDFileID = myDFS.createDFile();
+		assertTrue(myDFS.listAllDFiles().size()==baseSize+1); //myDFS should now have 1 DFile
+		myDFS.destroyDFile(newDFileID);
+		assertTrue(myDFS.listAllDFiles().size()==baseSize); //myDFS should be back to 0 DFiles now
+		
+		DFileID[] dfileids = new DFileID[Constants.MAX_NUM_FILES];
+		for(int i = 0;i<dfileids.length;i++)	dfileids[i]=myDFS.createDFile();
+		assertTrue(myDFS.listAllDFiles().size()==Constants.MAX_NUM_FILES); //should exist the max number of dfiles
+		
+		for(int i = 0;i<dfileids.length;i++){
+			myDFS.destroyDFile(dfileids[i]);
+		}
+		assertTrue(myDFS.listAllDFiles().size()==0); //should be no dfiles now
+		
+		
+		
+	}
+	
+	@Test
+	public void testOffset() throws FileNotFoundException, IOException{
+		DFS myDFS = new MyDFS(false);
+		String testString = "asdfasdfasdf";
+		byte[] writeFromBuffer = testString.getBytes();
+//		int bytesPerChar = writeFromBuffer.length/testString.length();
+		int offset = 5;
+		DFileID dfid = myDFS.createDFile();
+		myDFS.write(dfid, writeFromBuffer, 0, writeFromBuffer.length);
+		byte[] readToBuffer = new byte[writeFromBuffer.length-offset];
+		myDFS.read(dfid, readToBuffer, offset, readToBuffer.length-offset);
+		
+//		String readToString = new String(readToBuffer);
+//		String writeFromBufferString = new String(writeFromBuffer);
+		
+		for(int i = 0;i<readToBuffer.length-offset;i++){
+			assertTrue(readToBuffer[i]==writeFromBuffer[i+offset]);
+		}
+	}
+	@Test
+	public void testPersistence() throws FileNotFoundException, IOException{
+		DFS dfs1 = new MyDFS();
+		byte[] buffer = "asdfasdfasdf".getBytes();
+		DFileID dfid = dfs1.createDFile();
+		dfs1.write(dfid, buffer, 0, buffer.length);
+		
+		//now instantiate another dfs, and check persistence of the first file
+		DFS dfs2 = new MyDFS();
+		List<DFileID> dfileids = dfs2.listAllDFiles();
+		assertTrue(dfileids.size()==1); //there should already exist 1 dfile
+		DFileID firstDFile = dfileids.get(0);
+		byte[] readToBuffer = new byte[dfs2.sizeDFile(firstDFile)];
+		dfs2.read(firstDFile, readToBuffer, 0, readToBuffer.length);
+		assertTrue(buffer.equals(readToBuffer));
 		
 		
 	}
@@ -68,83 +130,30 @@ public class JUnitTests {
 			
 			String testString = "Hello DFS!"+Integer.toString(i);
 			byte[] equalityBuffer = testString.getBytes();
-			assertTrue(toReadBuffer.equals(equalityBuffer));
+			assertTrue(new String(toReadBuffer).equals(new String(equalityBuffer)));
 		}
 		
 		
-	}
-	@Test
-	public void testCreateAndDelete() throws FileNotFoundException, IOException{
-		DFS myDFS = new MyDFS(true);
-		assertTrue(myDFS.listAllDFiles().size()==0); //myDFS listDFile should be empty at start
-		DFileID newDFileID = myDFS.createDFile();
-		assertTrue(myDFS.listAllDFiles().size()==1); //myDFS should now have 1 DFile
-		myDFS.destroyDFile(newDFileID);
-		assertTrue(myDFS.listAllDFiles().size()==0); //myDFS should be back to 0 DFiles now
-		
-		DFileID[] dfileids = new DFileID[Constants.MAX_NUM_FILES];
-		for(int i = 0;i<dfileids.length;i++)	dfileids[i]=myDFS.createDFile();
-		assertTrue(myDFS.listAllDFiles().size()==Constants.MAX_NUM_FILES); //should exist the max number of dfiles
-		
-		for(int i = 0;i<dfileids.length;i++){
-			myDFS.destroyDFile(dfileids[i]);
-		}
-		assertTrue(myDFS.listAllDFiles().size()==0); //should be no dfiles now
-		
-		
-		
-	}
+	}	
 	
-	@Test
-	public void testOffset() throws FileNotFoundException, IOException{
-		DFS myDFS = new MyDFS(true);
-		byte[] writeFromBuffer = "asdfhjkl".getBytes();
-		int offset = 5;
-		DFileID dfid = myDFS.createDFile();
-		myDFS.write(dfid, writeFromBuffer, offset, writeFromBuffer.length-offset);
-		byte[] readToBuffer = new byte[writeFromBuffer.length-offset];
-		myDFS.read(dfid, readToBuffer, offset, readToBuffer.length);
-		for(int i = 0;i<readToBuffer.length;i++){
-			assertTrue(readToBuffer[i]==writeFromBuffer[offset+i]);
-		}
-	}
-	@Test
-	public void testPersistence() throws FileNotFoundException, IOException{
-		DFS dfs1 = new MyDFS();
-		byte[] buffer = "asdfasdfasdf".getBytes();
-		DFileID dfid = dfs1.createDFile();
-		dfs1.write(dfid, buffer, 0, buffer.length);
-		
-		//now instantiate another dfs, and check persistence of the first file
-		DFS dfs2 = new MyDFS();
-		List<DFileID> dfileids = dfs2.listAllDFiles();
-		assertTrue(dfileids.size()==1); //there should already exist 1 dfile
-		DFileID firstDFile = dfileids.get(0);
-		byte[] readToBuffer = new byte[dfs2.sizeDFile(firstDFile)];
-		dfs2.read(firstDFile, readToBuffer, 0, readToBuffer.length);
-		assertTrue(buffer.equals(readToBuffer));
-		
-		
-	}
-	
-	@Test
-	public void testConcurrentClients(){
-		
-	}
-	
-	@Test
-	public void testVeryLargeFiles(){
-		
-	}
-
-	@Test
-	public void testFormat(){
-		
-	}
-
-
-	@Test
-	public void testReadReturnsMostRecentlyWrittenData(){
-		
-	}
+//	@Test
+//	public void testConcurrentClients(){
+//		
+//	}
+//	
+//	@Test
+//	public void testVeryLargeFiles(){
+//		
+//	}
+//
+//	@Test
+//	public void testFormat(){
+//		
+//	}
+//
+//
+//	@Test
+//	public void testReadReturnsMostRecentlyWrittenData(){
+//		
+//	}
 }
