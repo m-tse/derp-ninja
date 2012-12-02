@@ -1,5 +1,7 @@
 package dfs;
 
+import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.util.List;
 
 import common.Constants;
@@ -39,13 +41,13 @@ public abstract class DFS {
 	 * reads the file dfile named by DFileID into the buffer starting from the
 	 * buffer offset startOffset; at most count bytes are transferred
 	 */
-	public abstract int read(DFileID dFID, byte[] buffer, int startOffset, int count);
+	public abstract int read(DFileID dFID, byte[] buffer, int startOffset, int count) throws IllegalArgumentException, FileNotFoundException, IOException;
 	
 	/*
 	 * writes to the file specified by DFileID from the buffer starting from the
 	 * buffer offset startOffsetl at most count bytes are transferred
 	 */
-	public abstract int write(DFileID dFID, byte[] buffer, int startOffset, int count);
+	public abstract int write(DFileID dFID, byte[] buffer, int startOffset, int count) throws IllegalArgumentException, FileNotFoundException, IOException;
 	
 	/* returns the size in bytes of the file indicated by DFileID. */
 	public abstract int sizeDFile(DFileID dFID);
