@@ -173,6 +173,26 @@ public class JUnitTests {
 		}
 		assertTrue(completeCounter.size()==numWriterThreads);
 	}
+	
+	@Test
+	public void testAsynchronousReadingAndWriting(){
+		DFS myDFS = new MyDFS(true);
+		ArrayList<Integer> completeCounter = new ArrayList<Integer>();
+		int numWriterThreads = 5;
+		for(int i = 0;i<numWriterThreads;i++){
+			WriterClient w = new WriterClient(i, myDFS, completeCounter);
+			w.run();
+		}
+		int numReaderThreads = 10;
+		for(int i = 0;i<numReaderThreads;i++){
+			ReaderClient r = new ReaderClient(myDFS, completeCounter);
+			r.run();
+		}
+		while(completeCounter.size()<numWriterThreads+numReaderThreads){
+			
+		}
+		assertTrue(completeCounter.size()==numWriterThreads+numReaderThreads);
+	}
 //	
 //	@Test
 //	public void testVeryLargeFiles(){
@@ -187,8 +207,10 @@ public class JUnitTests {
 		DFileID dfid = myDFS.createDFile();
 		myDFS.write(dfid, writeFromBuffer, 0, writeFromBuffer.length);
 		assertTrue(myDFS.listAllDFiles().size()==1);
+		System.out.println("before second format");
 		DFS newDFS = new MyDFS(true);
-		assertTrue(myDFS.listAllDFiles().size()==0);
+		System.out.println("after second format");
+		assertTrue(newDFS.listAllDFiles().size()==0);
 	}
 //
 //
