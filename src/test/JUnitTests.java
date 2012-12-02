@@ -29,7 +29,7 @@ public class JUnitTests {
 	
 
 	
-	@Test
+//	@Test
 	public void testBasicWriteThenRead() throws FileNotFoundException, IOException{
 		DFS myDFS = new MyDFS(true); //start off by formatting the drive
 		DFileID newDFileID = myDFS.createDFile();
@@ -136,10 +136,14 @@ public class JUnitTests {
 		
 	}	
 	
-//	@Test
-//	public void testConcurrentClients(){
-//		
-//	}
+	@Test
+	public void testConcurrentReadingClients(){
+		DFS myDFS = new MyDFS(true);
+		for(int i = 0;i<10;i++){
+			ReaderClient r = new ReaderClient(myDFS);
+		}
+		//check that they all finished with no deadlocks
+	}
 //	
 //	@Test
 //	public void testVeryLargeFiles(){

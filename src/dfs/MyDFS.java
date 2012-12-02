@@ -121,6 +121,7 @@ public class MyDFS extends DFS {
 				iNode.clearINode();
 				DBuffer dbuf = bufferCache.getBlock(i % Constants.INODES_PER_BLOCK);
 				iNode.writeToBuffer(dbuf);
+				iNodes[i]=null;
 			}
 		}
 	}
