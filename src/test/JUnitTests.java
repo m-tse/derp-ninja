@@ -179,7 +179,17 @@ public class JUnitTests {
 //		
 //	}
 //
-
+	@Test
+	public void testFormat() throws IllegalArgumentException, FileNotFoundException, IOException{
+		DFS myDFS = new MyDFS(true);
+		assertTrue(myDFS.listAllDFiles().size()==0);
+		byte[] writeFromBuffer = "adsfasdf".getBytes();
+		DFileID dfid = myDFS.createDFile();
+		myDFS.write(dfid, writeFromBuffer, 0, writeFromBuffer.length);
+		assertTrue(myDFS.listAllDFiles().size()==1);
+		DFS newDFS = new MyDFS(true);
+		assertTrue(myDFS.listAllDFiles().size()==0);
+	}
 //
 //
 //	@Test
