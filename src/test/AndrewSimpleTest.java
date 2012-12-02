@@ -4,7 +4,8 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 
 import common.DFileID;
-import dfs.myDFS;
+
+import dfs.MyDFS;
 
 
 
@@ -13,7 +14,7 @@ public class AndrewSimpleTest {
 
 	public static void main(String[] args) throws FileNotFoundException, IOException {
 
-		myDFS dfs = new myDFS();	
+		MyDFS dfs = new MyDFS();	
 		String s = "Hello DeFiler World!"; 
 		byte[] sBytes = s.getBytes();
 		byte[] rBytes = new byte[sBytes.length];

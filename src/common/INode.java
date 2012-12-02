@@ -1,11 +1,9 @@
 package common;
 
-import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 
 import dblockcache.DBuffer;
-import dblockcache.DBufferCache;
 
 public class INode {
 
@@ -13,19 +11,19 @@ public class INode {
 	private int[] _blocks;  
 	private int _fileSize;
 	private DFileID _fileID;
-
+	
 	// INode byte format
 	/*
 	 * Bytes 0-3: fileId 
 	 * Bytes 4-7: fileSize  
 	 * Bytes 8-255: Block array 
 	 */
-
+	
 	public INode(byte[] iNodeBytes) {
 		byte[] fileIdBytes = new byte[4];
 		byte[] fileSizeBytes = new byte[4];
 		ByteBuffer bb;
-
+		
 		// Retrieve file ID
 		for (int i = 0 ; i < 4; ++i) {
 			fileIdBytes[i] = iNodeBytes[i];
@@ -55,13 +53,13 @@ public class INode {
 			}
 		}
 	}
-
+	
 	public byte[] getBytes() {
 		byte[] iNodeBytes = new byte[Constants.INODE_SIZE];
 		ByteBuffer bb;
 		byte[] result;
 		int index = 0;
-
+		
 		// FileID
 		bb = ByteBuffer.allocate(4);
 		bb.putInt(_fileID.getInt());
@@ -70,7 +68,7 @@ public class INode {
 			iNodeBytes[index] = b;
 			++index;
 		}		
-
+		
 		// File size
 		bb = ByteBuffer.allocate(4);
 		bb.putInt(_fileSize);
@@ -79,7 +77,7 @@ public class INode {
 			iNodeBytes[index] = b;
 			++index;
 		}		
-
+		
 		// Blocks 
 		for (int i: _blocks) {
 			bb = ByteBuffer.allocate(4);
@@ -90,50 +88,49 @@ public class INode {
 				++index;
 			}
 		}
-
-		System.out.println("getBytes() in INode.java: " + index);
+				
+		System.out.println("getBytes() in INode.java: " + _fileID.getInt());
 		return iNodeBytes;
 	}
-
+	
 	public INode(DFileID fileID) {
 		_blocks = new int[Constants.MAX_FILE_BLOCK_SIZE]; // 62*4 bytes = 248 bytes
 		_fileSize = 0; // 4 bytes
 		_fileID = fileID; // 4 bytes
 	}
-
+	
 	public void increaseFileSize(int amount) {
 		_fileSize += amount;
 	}
-
+	
 	public void decreateFileSize(int amount) {
 		_fileSize -= amount;
 	}
-
-
+	
+	
 	public DFileID getDFileID() {
 		return _fileID;
 	}
-
-
+	
+	
 	public int getFileSize() {
 		return new Integer(_fileSize);
 	}
-
+	
 	public void setFileSize(int fileSize) {
 		_fileSize = fileSize;
 	}
-
+	
 	public int[] getBlockArray() {
 		return Arrays.copyOf(_blocks, _blocks.length);
 	}
-
-
+	
+	
 	public void setBlockArray(int[] blocks) {
 		_blocks = blocks;
 	}
-
+	
 	public void addBlock(int newBlock) {
-	// TODO: Crap algorithm, make better
 		for (int i = 0; i < _blocks.length; ++i) {
 			if (_blocks[i] == 0) {
 				_blocks[i] = newBlock;
@@ -142,7 +139,7 @@ public class INode {
 		}
 		System.err.println("Could not add block to inode, no more space");
 	}
-
+	
 	public void removeBlock(int oldBlock) {
 		for (int i = 0; i < _blocks.length; ++i) {
 			if (_blocks[i] == oldBlock) {
@@ -153,21 +150,33 @@ public class INode {
 		System.err.println("Could not find block in inode");
 	}
 
-	public void writeToDisk(DBufferCache bufferCache) {
+	public void writeToBuffer(DBuffer dbuf) {
 		byte[] iNodeBytes = this.getBytes();
-		int blockID = _fileID.getInt() / Constants.INODES_PER_BLOCK;
+		dbuf.startFetch();
+		dbuf.waitValid();
+		byte[] bufferBytes = dbuf.getBuffer();
 		int iNodeOffset = Constants.INODE_SIZE * (_fileID.getInt() % Constants.INODES_PER_BLOCK);
-		DBuffer dBuffer = bufferCache.getBlock(blockID);
+		for (int i = 0; i < iNodeBytes.length; ++i) {
+			bufferBytes[i+iNodeOffset] = iNodeBytes[i];
+		}
 		try {
-			dBuffer.write(iNodeBytes, iNodeOffset, iNodeBytes.length);
-			System.out.println("MyDFS.createFileID(): " + blockID);
-			System.out.println("MyDFS.createFileID(): " + iNodeOffset);
+			dbuf.write(bufferBytes, 0, bufferBytes.length);
+			dbuf.startPush();
+			dbuf.waitClean();
+			System.out.println("INode.writeToDisk(): " + iNodeOffset);
 		} catch (IllegalArgumentException e) {
 			e.printStackTrace();
 		}
 
 	}
 
+	public void clearINode() {
+		Arrays.fill(_blocks, 0);
+		_fileID.clearFileID();
+		_fileSize = 0;
+	}
+	
+	
 	public boolean isNotUsed() {
 		for (int i: _blocks) {
 			if (i != 0) {
@@ -176,5 +185,5 @@ public class INode {
 		}
 		return true;
 	}
-
+	
 }

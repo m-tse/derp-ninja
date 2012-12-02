@@ -12,7 +12,7 @@ import common.Constants;
 import common.DFileID;
 
 import dfs.DFS;
-import dfs.myDFS;
+import dfs.MyDFS;
 
 public class JUnitTests {
 	/*
@@ -30,7 +30,7 @@ public class JUnitTests {
 	
 	@Test
 	public void testBasicWriteThenRead() throws FileNotFoundException, IOException{
-		DFS myDFS = new myDFS(true); //start off by formatting the drive
+		DFS myDFS = new MyDFS(true); //start off by formatting the drive
 		DFileID newDFileID = myDFS.createDFile();
 		String helloString = "Hello World!";
 		byte[] WrittenFromBuffer = helloString.getBytes();
@@ -51,7 +51,7 @@ public class JUnitTests {
 	
 	@Test
 	public void testMaxSizeOfDFS() throws FileNotFoundException, IOException{
-		DFS myDFS = new myDFS(true);
+		DFS myDFS = new MyDFS(true);
 		DFileID[] dfileIDs = new DFileID[Constants.MAX_NUM_FILES];
 		//write them all
 		for(int i = 0;i<dfileIDs.length;i++){
@@ -75,7 +75,7 @@ public class JUnitTests {
 	}
 	@Test
 	public void testCreateAndDelete() throws FileNotFoundException, IOException{
-		DFS myDFS = new myDFS(true);
+		DFS myDFS = new MyDFS(true);
 		assertTrue(myDFS.listAllDFiles().size()==0); //myDFS listDFile should be empty at start
 		DFileID newDFileID = myDFS.createDFile();
 		assertTrue(myDFS.listAllDFiles().size()==1); //myDFS should now have 1 DFile
@@ -97,7 +97,7 @@ public class JUnitTests {
 	
 	@Test
 	public void testOffset() throws FileNotFoundException, IOException{
-		DFS myDFS = new myDFS(true);
+		DFS myDFS = new MyDFS(true);
 		byte[] writeFromBuffer = "asdfhjkl".getBytes();
 		int offset = 5;
 		DFileID dfid = myDFS.createDFile();
@@ -110,13 +110,13 @@ public class JUnitTests {
 	}
 	@Test
 	public void testPersistence() throws FileNotFoundException, IOException{
-		DFS dfs1 = new myDFS();
+		DFS dfs1 = new MyDFS();
 		byte[] buffer = "asdfasdfasdf".getBytes();
 		DFileID dfid = dfs1.createDFile();
 		dfs1.write(dfid, buffer, 0, buffer.length);
 		
 		//now instantiate another dfs, and check persistence of the first file
-		DFS dfs2 = new myDFS();
+		DFS dfs2 = new MyDFS();
 		List<DFileID> dfileids = dfs2.listAllDFiles();
 		assertTrue(dfileids.size()==1); //there should already exist 1 dfile
 		DFileID firstDFile = dfileids.get(0);
@@ -124,6 +124,11 @@ public class JUnitTests {
 		dfs2.read(firstDFile, readToBuffer, 0, readToBuffer.length);
 		assertTrue(buffer.equals(readToBuffer));
 		
+		
+	}
+	
+	@Test
+	public void testConcurrentClients(){
 		
 	}
 	
@@ -136,10 +141,7 @@ public class JUnitTests {
 	public void testFormat(){
 		
 	}
-	@Test
-	public void testConcurrentClients(){
-		
-	}
+
 
 	@Test
 	public void testReadReturnsMostRecentlyWrittenData(){

@@ -1,7 +1,12 @@
 package test;
 
-public class Client extends Thread{
-	public void run(){
+
+public class Client implements Runnable {
+
+	@Override
+	public void run() {
 		
 	}
+	
+
 }
