@@ -42,6 +42,16 @@ public class MyDBufferCache extends DBufferCache {
 		 * ...seriously?
 		 */
 	}
+	
+	/*
+	 * Flush out the cache.
+	 */
+	public void flush() {
+		for (MyDBuffer dbuf: bufferQueue) {
+			dbuf.setBlockID(0);
+			dbuf.clearBuffer();
+		}
+	}
 
 	public MyDBuffer checkInCache(int blockID) {
 		for (MyDBuffer dbuf: bufferQueue) {
