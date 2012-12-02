@@ -81,7 +81,7 @@ public class MyDFS extends DFS {
 	
 	@Override
 	public boolean format() {
-		System.out.println("FORMATING");
+		System.out.println("FORMATING IN DFS");
 		return MyVirtualDisk.format();
 	}
 

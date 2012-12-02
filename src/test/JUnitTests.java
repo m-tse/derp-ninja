@@ -4,6 +4,7 @@ import static org.junit.Assert.assertTrue;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 
 import org.junit.Test;
@@ -29,7 +30,7 @@ public class JUnitTests {
 	
 
 	
-//	@Test
+	@Test
 	public void testBasicWriteThenRead() throws FileNotFoundException, IOException{
 		DFS myDFS = new MyDFS(true); //start off by formatting the drive
 		DFileID newDFileID = myDFS.createDFile();
@@ -53,6 +54,7 @@ public class JUnitTests {
 	@Test
 	public void testCreateAndDelete() throws FileNotFoundException, IOException{
 		DFS myDFS = new MyDFS(true);
+		assertTrue(myDFS.listAllDFiles().size()==0); //after format size should be zero
 		int baseSize = myDFS.listAllDFiles().size();
 		assertTrue(myDFS.listAllDFiles().size()==baseSize); //myDFS listDFile should be empty at start
 		DFileID newDFileID = myDFS.createDFile();
@@ -94,7 +96,7 @@ public class JUnitTests {
 	}
 	@Test
 	public void testPersistence() throws FileNotFoundException, IOException{
-		DFS dfs1 = new MyDFS();
+		DFS dfs1 = new MyDFS(true);
 		byte[] buffer = "asdfasdfasdf".getBytes();
 		DFileID dfid = dfs1.createDFile();
 		dfs1.write(dfid, buffer, 0, buffer.length);
@@ -102,11 +104,16 @@ public class JUnitTests {
 		//now instantiate another dfs, and check persistence of the first file
 		DFS dfs2 = new MyDFS();
 		List<DFileID> dfileids = dfs2.listAllDFiles();
-		assertTrue(dfileids.size()==1); //there should already exist 1 dfile
+		
+		assertTrue(dfileids.size()==1); //there should already and only exist 1 dfile
+		
 		DFileID firstDFile = dfileids.get(0);
 		byte[] readToBuffer = new byte[dfs2.sizeDFile(firstDFile)];
 		dfs2.read(firstDFile, readToBuffer, 0, readToBuffer.length);
-		assertTrue(buffer.equals(readToBuffer));
+		System.out.println("asdf");
+		System.out.println(new String(readToBuffer));
+		
+		assertTrue(new String(buffer).equals(new String(readToBuffer)));
 		
 		
 	}
@@ -139,10 +146,32 @@ public class JUnitTests {
 	@Test
 	public void testConcurrentReadingClients(){
 		DFS myDFS = new MyDFS(true);
-		for(int i = 0;i<10;i++){
-			ReaderClient r = new ReaderClient(myDFS);
+		ArrayList<Integer> completeCounter = new ArrayList<Integer>();
+		int numReaderThreads = 10;
+		for(int i = 0;i<numReaderThreads;i++){
+			ReaderClient r = new ReaderClient(myDFS, completeCounter);
+			r.run();
 		}
+		while(completeCounter.size()<numReaderThreads){
+			
+		}
+		assertTrue(completeCounter.size()==numReaderThreads);
 		//check that they all finished with no deadlocks
+	}
+	
+	@Test
+	public void testAsynchronousWritingClients(){
+		DFS myDFS = new MyDFS(true);
+		ArrayList<Integer> completeCounter = new ArrayList<Integer>();
+		int numWriterThreads = 10;
+		for(int i = 0;i<numWriterThreads;i++){
+			WriterClient w = new WriterClient(i, myDFS, completeCounter);
+			w.run();
+		}
+		while(completeCounter.size()<numWriterThreads){
+			
+		}
+		assertTrue(completeCounter.size()==numWriterThreads);
 	}
 //	
 //	@Test
@@ -150,10 +179,7 @@ public class JUnitTests {
 //		
 //	}
 //
-//	@Test
-//	public void testFormat(){
-//		
-//	}
+
 //
 //
 //	@Test
