@@ -78,18 +78,19 @@ public class JUnitTests {
 	@Test
 	public void testOffset() throws FileNotFoundException, IOException{
 		DFS myDFS = new MyDFS(false);
-		String testString = "asdfasdfasdf";
+		String testString = "1234567890";
 		byte[] writeFromBuffer = testString.getBytes();
 //		int bytesPerChar = writeFromBuffer.length/testString.length();
 		int offset = 5;
 		DFileID dfid = myDFS.createDFile();
 		myDFS.write(dfid, writeFromBuffer, 0, writeFromBuffer.length);
-		byte[] readToBuffer = new byte[writeFromBuffer.length-offset];
-		myDFS.read(dfid, readToBuffer, offset, readToBuffer.length-offset);
+		byte[] readToBuffer = new byte[writeFromBuffer.length];
+		myDFS.read(dfid, readToBuffer, 4, readToBuffer.length-3);
 		
-//		String readToString = new String(readToBuffer);
-//		String writeFromBufferString = new String(writeFromBuffer);
-		
+		String readToString = new String(readToBuffer);
+		String writeFromBufferString = new String(writeFromBuffer);
+		System.out.println(readToString);
+//		System.out.println(writeFromBufferString);
 		for(int i = 0;i<readToBuffer.length-offset;i++){
 			assertTrue(readToBuffer[i]==writeFromBuffer[i+offset]);
 		}
@@ -97,9 +98,12 @@ public class JUnitTests {
 	@Test
 	public void testPersistence() throws FileNotFoundException, IOException{
 		DFS dfs1 = new MyDFS(true);
+		assertTrue(dfs1.listAllDFiles().size()==0);
+
 		byte[] buffer = "asdfasdfasdf".getBytes();
 		DFileID dfid = dfs1.createDFile();
 		dfs1.write(dfid, buffer, 0, buffer.length);
+		assertTrue(dfs1.listAllDFiles().size()==1);
 		
 		//now instantiate another dfs, and check persistence of the first file
 		DFS dfs2 = new MyDFS();
@@ -110,9 +114,8 @@ public class JUnitTests {
 		DFileID firstDFile = dfileids.get(0);
 		byte[] readToBuffer = new byte[dfs2.sizeDFile(firstDFile)];
 		dfs2.read(firstDFile, readToBuffer, 0, readToBuffer.length);
-		System.out.println("asdf");
 		System.out.println(new String(readToBuffer));
-		
+		System.out.println(new String(buffer));
 		assertTrue(new String(buffer).equals(new String(readToBuffer)));
 		
 		
@@ -194,10 +197,24 @@ public class JUnitTests {
 		assertTrue(completeCounter.size()==numWriterThreads+numReaderThreads);
 	}
 //	
-//	@Test
-//	public void testVeryLargeFiles(){
-//		
-//	}
+	@Test
+	public void testVeryLargeFiles() throws IllegalArgumentException, FileNotFoundException, IOException{
+		DFS myDFS = new MyDFS(true);
+		int twoExponent = 10;
+		byte[] bigByteArray = new byte[(int) Math.pow(2, twoExponent)];
+		for(int i = 0;i<bigByteArray.length;i++){
+			bigByteArray[i]='1';
+		}
+		DFileID dfid = myDFS.createDFile();
+		myDFS.write(dfid, bigByteArray, 0, bigByteArray.length);
+		byte[] readToArray = new byte[bigByteArray.length];
+		myDFS.read(dfid, readToArray, 0, bigByteArray.length);
+		for(int i = 0;i<readToArray.length;i++){
+			assertTrue(bigByteArray[i]==readToArray[i]);
+		}
+		
+		
+	}
 //
 	@Test
 	public void testFormat() throws IllegalArgumentException, FileNotFoundException, IOException{
