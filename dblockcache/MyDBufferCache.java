@@ -1,56 +1,111 @@
 package dblockcache;
 
 import java.util.HashMap;
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.Queue;
+
+import common.Constants;
 
 public class MyDBufferCache extends DBufferCache {
 
-	private HashMap<Integer, MyDBuffer> _bufferMemory;
-	private RestrictedQueue<MyDBuffer> _bufferQueue; // Custom class: queue of restricted size
+	private HashMap<Integer, MyDBuffer> bufferMemory;
+	private RestrictedQueue<MyDBuffer> bufferQueue; // Custom class: queue of restricted size
+	private boolean allBuffersBusy;
+	private static final int NUMRESERVED_BUFFERS = 8;
+
+	private static MyDBufferCache myInstance;
 	
+	public static MyDBufferCache getInstance() {
+		if (myInstance == null) {
+			myInstance = new MyDBufferCache(Constants.CACHE_SIZE);
+		}
+		return myInstance;
+	}
 	
-	public MyDBufferCache(int cacheSize) { // cacheSize = number of blocks 
+	private MyDBufferCache(int cacheSize) { // cacheSize = number of blocks 
 		super(cacheSize);
-		_bufferMemory = new HashMap<Integer, MyDBuffer>();
-		_bufferQueue = new RestrictedQueue<MyDBuffer>(cacheSize);
+		bufferMemory = new HashMap<Integer, MyDBuffer>();
+		bufferQueue = new RestrictedQueue<MyDBuffer>(cacheSize);
+		// Need to 'pin' buffers that we will always need: iNode and freeMap buffers
+		for (int i = 0; i < NUMRESERVED_BUFFERS; ++i) {
+			MyDBuffer iNodeBuffer = new MyDBuffer(true);
+			iNodeBuffer.setBlockID(i);
+			iNodeBuffer.holdBuffer();
+			bufferQueue.add(iNodeBuffer);
+		}
+		for (int i = NUMRESERVED_BUFFERS; i < cacheSize; ++i) {
+			bufferQueue.add(new MyDBuffer());
+		}
+		allBuffersBusy = false;
+		/*
+		 * Vamsi - should init all buffers beforehand and then set
+		 * the blockIDs as needed
+		 * Also, should not use any other memory than buffer cache?
+		 * ...seriously?
+		 */
+	}
+
+	public MyDBuffer checkInCache(int blockID) {
+		for (MyDBuffer dbuf: bufferQueue) {
+			if (dbuf.getBlockID() == blockID) return dbuf;
+		}
+		return null;
+	}
+
+	public MyDBuffer getAvailableBuffer() {
+		for (MyDBuffer dbuf: bufferQueue) {
+			if (dbuf.getBlockID() == 0) {
+				return dbuf;
+			}
+		}
+		return null;
 	}
 
 	@Override
 	public DBuffer getBlock(int blockID) {
-		MyDBuffer retrievedBuffer = null;
-		if (!_bufferMemory.keySet().contains(blockID)) {
-			retrievedBuffer = new MyDBuffer(blockID);
-			if (_bufferMemory.size() == super.getCacheSize()) { // Need to evict one 
-				Iterator<MyDBuffer> find = _bufferQueue.iterator();
-				DBuffer unpopularBuffer = null;
-				while (find.hasNext()) {
-					unpopularBuffer = find.next();
-					if (unpopularBuffer.isBusy()) continue;
-					else break;
-				}
-				if (unpopularBuffer == null) { 
-					System.err.println("ALL BUFFERS BUSY");
-				} else { // Evict
-					_bufferMemory.remove(unpopularBuffer);
-					_bufferQueue.remove(unpopularBuffer);
-				}
-			} else if (_bufferMemory.size() > super.getCacheSize()) { // ERROR
-				System.err.println("CACHE OVERFLOW");
-			}
-			_bufferMemory.put(blockID, retrievedBuffer);
-			_bufferQueue.add(retrievedBuffer);
-			retrievedBuffer.holdBuffer();
-		} else {
-			retrievedBuffer = _bufferMemory.get(blockID);
-			retrievedBuffer.holdBuffer();
-			_bufferQueue.remove(retrievedBuffer);
-			_bufferQueue.add(retrievedBuffer);
-		}
-		return retrievedBuffer;
+		// TODO: Need to synchronize this method
+		// See if block in buffer
+		MyDBuffer retrieved;
+		if ((retrieved = checkInCache(blockID)) != null) return retrieved; 
+		// else
+		if ((retrieved = getAvailableBuffer()) != null) { 
+			retrieved.setBlockID(blockID);
+			retrieved.holdBuffer();
+			return retrieved;
+		} // else need to EVICT 
+		MyDBuffer evictee = bufferQueue.poll();
+		if (evictee.isBusy() || evictee.isPinned()) { 
+			// If first i.e. most unpopular buffer is busy then all are busy
+			// Wait for one to free up ?
+			// For now just wait for evictee
+			allBuffersBusy = true;
+			waitOnBuffers();
+		} 
+		evictee.clearBuffer();
+		evictee.setBlockID(blockID);
+		evictee.holdBuffer();
+		bufferQueue.add(evictee);
+		return evictee;
 	}
 
+	public boolean waitingOnBuffers() {
+		return allBuffersBusy;
+	}
+	
+	
+	public synchronized void waitOnBuffers() {
+		while(allBuffersBusy) {
+			try {
+				this.wait();
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+		}
+	}
+	
+	public synchronized void signalBufferReady() {
+		allBuffersBusy = false;
+		this.notify();
+	}
+	
 	@Override
 	public void releaseBlock(DBuffer buf) {
 		// Err this is fishy - Andrew
@@ -61,7 +116,7 @@ public class MyDBufferCache extends DBufferCache {
 
 	@Override
 	public void sync() {
-		for (MyDBuffer buf: _bufferQueue) {
+		for (MyDBuffer buf: bufferQueue) {
 			if (!buf.checkClean()) {
 				buf.startPush();
 				buf.waitClean();

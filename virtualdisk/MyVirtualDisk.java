@@ -42,12 +42,12 @@ public class MyVirtualDisk extends VirtualDisk implements Runnable {
 	/*
 	 * MyVirtualDisk Constructors
 	 */
-	private Queue<Request> _requestQueue;
+	private Queue<Request> requestQueue;
 	
 	private MyVirtualDisk(String volName, boolean format) throws FileNotFoundException,
 			IOException {
 		super(volName, format);
-		_requestQueue = new LinkedList<Request>();
+		requestQueue = new LinkedList<Request>();
 		Thread t = new Thread(this);
 		t.setDaemon(true);
 		t.start();
@@ -66,16 +66,15 @@ public class MyVirtualDisk extends VirtualDisk implements Runnable {
 	public void startRequest(DBuffer buf, DiskOperationType operation) {
 		Request nextRequest = new Request(buf, operation);
 		synchronized(this) {
-			_requestQueue.add(nextRequest);
+			requestQueue.add(nextRequest);
 			this.notify();
 		}
 	}
-	
 
 	@Override
 	public void run() {
 		while (true) {
-			while (_requestQueue.isEmpty()) {
+			while (requestQueue.isEmpty()) {
 				try {
 					synchronized(this) {
 						this.wait();
@@ -84,10 +83,10 @@ public class MyVirtualDisk extends VirtualDisk implements Runnable {
 					e.printStackTrace();
 				}
 			}
-			while (!_requestQueue.isEmpty()) {
+			while (!requestQueue.isEmpty()) {
 				Request nextRequest;
 				synchronized(this) {
-					nextRequest = _requestQueue.poll();
+					nextRequest = requestQueue.poll();
 				}
 				if (nextRequest.isRead()) {
 					try {

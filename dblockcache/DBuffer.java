@@ -1,7 +1,5 @@
 package dblockcache;
 
-import java.io.FileNotFoundException;
-import java.io.IOException;
 
 public abstract class DBuffer {
 	

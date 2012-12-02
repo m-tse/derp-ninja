@@ -12,6 +12,7 @@ import common.INode;
 
 import dblockcache.DBuffer;
 import dblockcache.DBufferCache;
+import dblockcache.MyDBuffer;
 import dblockcache.MyDBufferCache;
 
 public class MyDFS extends DFS {
@@ -21,18 +22,18 @@ public class MyDFS extends DFS {
 	// TODO: Update inode size
 	
 	
-	DBufferCache _bufferCache;
-	DFileID[] _fileIDs;
-	INode[] _iNodes;
-	int[] _freeMap;
+	DBufferCache bufferCache;
+	DFileID[] fileIDs;
+	INode[] iNodes;
+	int[] freeMap;
 	
 	
 	public MyDFS(String volName, boolean format) {
 		super(volName, format);
-		_bufferCache = new MyDBufferCache(Constants.NUM_OF_BLOCKS/2);
-		_fileIDs = new DFileID[Constants.MAX_NUM_FILES];
-		_iNodes = new INode[Constants.MAX_NUM_FILES];
-		_freeMap = new int[Constants.NUM_OF_BLOCKS-Constants.BLOCK_OFFSET]; // Block 0, 1-8 reserved 
+		bufferCache = MyDBufferCache.getInstance(); 
+		fileIDs = new DFileID[Constants.MAX_NUM_FILES];
+		iNodes = new INode[Constants.MAX_NUM_FILES];
+		freeMap = new int[Constants.NUM_OF_BLOCKS-Constants.BLOCK_OFFSET]; // Block 0, 1-8 reserved 
 		if (format) format();
 		this.readINodeRegion();
 	}
@@ -47,13 +48,15 @@ public class MyDFS extends DFS {
 	
 	private void readINodeRegion() {
 		int fileID = 0;
-		for (int i = 0; i < _iNodes.length/Constants.INODES_PER_BLOCK; ++i) {
-			byte[] iNodeBytes = new byte[Constants.INODE_SIZE];
-			DBuffer buffer = _bufferCache.getBlock(i+1); // i+1 because block 0 reserved 
-			buffer.startFetch();
+		for (int i = 0; i < iNodes.length/Constants.INODES_PER_BLOCK; ++i) {
+			DBuffer dbuf = bufferCache.getBlock(i+1); // i+1 because block 0 reserved 
+			System.out.println("MyDFS.readRegion() GETTING BLOCK " + (i+1));
+			dbuf.startFetch();
+			dbuf.waitValid();
+			byte[] bufferBytes = dbuf.getBuffer();
 			for (int k = 0; k < Constants.INODES_PER_BLOCK; ++k, ++fileID) {
-				buffer.read(iNodeBytes, 0, Constants.INODE_SIZE);
-				INode iNode = new INode(iNodeBytes);
+				INode iNode = new INode(Arrays.copyOfRange(
+						bufferBytes, k*Constants.INODE_SIZE, (k+1)*Constants.INODE_SIZE));
 				if (iNode.isNotUsed()) {
 					System.out.println("MyDFS.readINodeRegion(): NOOOO");
 					continue;
@@ -61,10 +64,10 @@ public class MyDFS extends DFS {
 					System.out.println("MyDFS.readINodeRegion(): YESSS");
 					System.out.println("- Got iNode for fileID: " + fileID);
 					// Convert bytes into iNode information
-					_iNodes[fileID] = iNode;
-					_fileIDs[fileID] = new DFileID(fileID);
+					iNodes[fileID] = iNode;
+					fileIDs[fileID] = new DFileID(fileID);
 					for (int n: iNode.getBlockArray()) {
-						_freeMap[n] = 1; // Not free
+						freeMap[n] = 1; // Not free
 					}
 				}
 			}
@@ -77,18 +80,24 @@ public class MyDFS extends DFS {
 		return MyVirtualDisk.format();
 	}
 
+	public boolean fileExists(DFileID dfid) {
+		return fileIDs[dfid.getInt()] != null ? true: false;
+	}
+	
+	
 	@Override
 	public DFileID createDFile() {
 		// Simple implementation for now: just file closest available ID
-		for (int i = 0; i < _fileIDs.length; ++i) {
-			if (_fileIDs[i] == null) {
-				_fileIDs[i] = new DFileID(i);
-				System.out.println("CREATING FILE: " + i);
+		for (int i = 0; i < fileIDs.length; ++i) {
+			if (fileIDs[i] == null) {
+				fileIDs[i] = new DFileID(i);
+				System.out.println("MyDFS.createFile() CREATING FILE: " + i);
 				// Create INode
-				INode iNode = new INode(_fileIDs[i]);
-				_iNodes[i] = iNode;
-				iNode.writeToDisk(_bufferCache);
-				return _fileIDs[i];
+				INode iNode = new INode(fileIDs[i]);
+				iNodes[i] = iNode;
+				DBuffer dbuf = bufferCache.getBlock(i/Constants.INODES_PER_BLOCK + 1);
+				iNode.writeToBuffer(dbuf);
+				return fileIDs[i];
 			}
 		}
 		return null;
@@ -96,20 +105,21 @@ public class MyDFS extends DFS {
 
 	@Override
 	public void destroyDFile(DFileID dFID) {
-		for (int i = 0; i < _fileIDs.length; ++i) {
-			if (_fileIDs[i] == dFID) {
-				_fileIDs[i] = null;
-				INode iNode = _iNodes[i];
+		for (int i = 0; i < fileIDs.length; ++i) {
+			if (fileIDs[i] == dFID) {
+				fileIDs[i] = null;
+				INode iNode = iNodes[i];
 				iNode.clearINode();
-				iNode.writeToDisk(_bufferCache);
+				DBuffer dbuf = bufferCache.getBlock(i % Constants.INODES_PER_BLOCK);
+				iNode.writeToBuffer(dbuf);
 			}
 		}
 	}
 	
 	public int getNextFreeBlock() {
-		for (int i = 0; i < _freeMap.length; ++i) {
-			if (_freeMap[i] == 0) {
-				_freeMap[i] = 1;
+		for (int i = 0; i < freeMap.length; ++i) {
+			if (freeMap[i] == 0) {
+				freeMap[i] = 1;
 				return i+Constants.BLOCK_OFFSET;
 			}
 		}
@@ -120,7 +130,7 @@ public class MyDFS extends DFS {
 	public int read(DFileID dFID, byte[] buffer, int startOffset, int count) {
 		int totalBytesRead = 0;
 		// REFACTOR HERE
-		INode iNode = _iNodes[dFID.getInt()];
+		INode iNode = iNodes[dFID.getInt()];
 		if (iNode == null) {
 			System.out.println("MyDFS.read(): FILE DOES NOT EXIST");
 		} else {
@@ -129,10 +139,14 @@ public class MyDFS extends DFS {
 			for (int i = 0; i < blocks.length; ++i) {
 				System.out.println("MyDFS.read(): " + blocks[i]);
 				if (blocks[i] == 0) continue; 
-				DBuffer dBuffer = _bufferCache.getBlock(blocks[i]);
-				dBuffer.startFetch();
-				int bytesRead = dBuffer.read(buffer, startOffset, count);
+				DBuffer dbuf = bufferCache.getBlock(blocks[i]);
+				if (!dbuf.checkValid()) {
+					dbuf.startFetch();
+					dbuf.waitValid();
+				}
+				int bytesRead = dbuf.read(buffer, startOffset, count);
 				totalBytesRead += bytesRead;
+				bufferCache.releaseBlock(dbuf);
 				if (count == totalBytesRead) break;  
 			}
 		}
@@ -142,11 +156,12 @@ public class MyDFS extends DFS {
 	}
 
 	@Override
-	public int write(DFileID dFID, byte[] buffer, int startOffset, int count) { 
+	public int write(DFileID dfid, byte[] buffer, int startOffset, int count) { 
 		int totalBytesWritten = 0;
-		INode iNode = _iNodes[dFID.getInt()];
+		int fileID = dfid.getInt();
+		INode iNode = iNodes[dfid.getInt()];
 		if (iNode == null) {
-			System.out.println("FILE DOES NOT EXIST");
+			System.out.println("MyDFS.write() FILE DOES NOT EXIST");
 		} else {
 			int[] blocks = iNode.getBlockArray();
 			int startBlock = startOffset / Constants.BLOCK_SIZE;
@@ -155,16 +170,20 @@ public class MyDFS extends DFS {
 				if (blocks[i] == 0) {
 					blocks[i] = this.getNextFreeBlock();
 					iNode.addBlock(blocks[i]);
-					if (blocks[i] == 0) System.out.println("NO MORE BLOCKS AVAILABLE");
-					else iNode.writeToDisk(_bufferCache);
+					if (blocks[i] == 0) System.out.println("MyDFS.write() NO MORE BLOCKS AVAILABLE");
+					else {
+						DBuffer dbuf = bufferCache.getBlock(fileID/Constants.INODES_PER_BLOCK + 1);
+						iNode.writeToBuffer(dbuf);
+					}
 				}
-				DBuffer dBuffer = _bufferCache.getBlock(blocks[i]);
-				int bytesWritten = dBuffer.write(buffer, startOffset, count);
-				if (bytesWritten == -1) System.err.println("WRITE FAILED");
+				DBuffer dbuf = bufferCache.getBlock(blocks[i]);
+				int bytesWritten = dbuf.write(buffer, startOffset, count);
+				if (bytesWritten == -1) System.err.println("MyDFS.write() WRITE FAILED");
 				totalBytesWritten += bytesWritten;
 				iNode.increaseFileSize(bytesWritten);
-				dBuffer.startPush();
-				System.out.println("PUSHED: " + dBuffer.getBlockID());
+				dbuf.startPush();
+				bufferCache.releaseBlock(dbuf);
+				System.out.println("MyDFS.write() PUSHED: " + dbuf.getBlockID());
 				if (count == bytesWritten) {
 					break;
 				} else {
@@ -173,21 +192,21 @@ public class MyDFS extends DFS {
 				}
 			}
 		}
-		System.out.println("MyDFS.write(): " + totalBytesWritten);
+		System.out.println("MyDFS.write() wrote num bytes: " + totalBytesWritten);
 		
 		return totalBytesWritten;
 	}
 
 	@Override
 	public int sizeDFile(DFileID dFID) {
-		INode iNode = _iNodes[dFID.getInt()];	
+		INode iNode = iNodes[dFID.getInt()];	
 		return iNode.getFileSize();
 	}
 
 	@Override
 	public List<DFileID> listAllDFiles() {
 		List<DFileID> dFiles = new ArrayList<DFileID>();
-		for (INode iNode: _iNodes) {
+		for (INode iNode: iNodes) {
 			if (iNode != null) {
 				dFiles.add(iNode.getDFileID());
 			}
@@ -196,7 +215,7 @@ public class MyDFS extends DFS {
 	}
 	
 	public void sync() {
-		_bufferCache.sync();
+		bufferCache.sync();
 	}
 	
 	

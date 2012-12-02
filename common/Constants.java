@@ -18,6 +18,7 @@ public class Constants {
 	public static final int INODE_REGION_SIZE_BLOCKS = INODE_REGION_SIZE_BYTES / BLOCK_SIZE;
 	public static final int INODES_PER_BLOCK = BLOCK_SIZE/INODE_SIZE; 
 	public static final int BLOCK_OFFSET = INODE_REGION_SIZE_BLOCKS + 1;
+	public static final int CACHE_SIZE = 1024;
 	
 	/* END: For TESTING purposes */
 	

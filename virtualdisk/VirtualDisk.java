@@ -102,9 +102,7 @@ public abstract class VirtualDisk implements IVirtualDisk {
 	int readBlock(DBuffer buf) throws IOException {
 		int seekLen = buf.getBlockID() * Constants.BLOCK_SIZE;
 		/* Boundary check */
-		if (_maxVolSize < seekLen + Constants.BLOCK_SIZE) {
-			return -1;
-		}
+		if (_maxVolSize < seekLen + Constants.BLOCK_SIZE) return -1;
 		_file.seek(seekLen);
 		return _file.read(buf.getBuffer(), 0, Constants.BLOCK_SIZE);
 	}

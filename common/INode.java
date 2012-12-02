@@ -1,11 +1,9 @@
 package common;
 
-import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 
 import dblockcache.DBuffer;
-import dblockcache.DBufferCache;
 
 public class INode {
 
@@ -91,7 +89,7 @@ public class INode {
 			}
 		}
 				
-		System.out.println("getBytes() in INode.java: " + index);
+		System.out.println("getBytes() in INode.java: " + _fileID.getInt());
 		return iNodeBytes;
 	}
 	
@@ -152,15 +150,19 @@ public class INode {
 		System.err.println("Could not find block in inode");
 	}
 
-	public void writeToDisk(DBufferCache bufferCache) {
+	public void writeToBuffer(DBuffer dbuf) {
 		byte[] iNodeBytes = this.getBytes();
-		int blockID = _fileID.getInt() / Constants.INODES_PER_BLOCK;
+		dbuf.startFetch();
+		dbuf.waitValid();
+		byte[] bufferBytes = dbuf.getBuffer();
 		int iNodeOffset = Constants.INODE_SIZE * (_fileID.getInt() % Constants.INODES_PER_BLOCK);
-		DBuffer dBuffer = bufferCache.getBlock(blockID);
+		for (int i = 0; i < iNodeBytes.length; ++i) {
+			bufferBytes[i+iNodeOffset] = iNodeBytes[i];
+		}
 		try {
-			dBuffer.write(iNodeBytes, iNodeOffset, iNodeBytes.length);
-			dBuffer.startPush();
-			System.out.println("INode.writeToDisk(): " + blockID);
+			dbuf.write(bufferBytes, 0, bufferBytes.length);
+			dbuf.startPush();
+			dbuf.waitClean();
 			System.out.println("INode.writeToDisk(): " + iNodeOffset);
 		} catch (IllegalArgumentException e) {
 			e.printStackTrace();

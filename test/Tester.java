@@ -22,11 +22,11 @@ public class Tester {
 	public static void create() {
 		MyDFS dfs = new MyDFS();
 
-		
-		
 		DFileID[] fileIDs = new DFileID[Constants.MAX_NUM_FILES];
 		for (int i = 0; i < fileIDs.length; ++i) {
-			fileIDs[i] = dfs.createDFile();
+			DFileID dfid = new DFileID(i);
+			if (dfs.fileExists(dfid)) fileIDs[i] = dfid;
+			else fileIDs[i] = dfs.createDFile();
 		}
 
 		for (DFileID fID: fileIDs) {
@@ -51,10 +51,8 @@ public class Tester {
 		}
 	}
 
-	
-
 	public static void main(String[] args) {
-//		create();
+		create();
 		after();
 	}
 	

@@ -6,25 +6,48 @@ import common.Constants;
 
 public class MyDBuffer extends DBuffer {
 
-	private byte[] _blockBytes; // Corresponds to information stored in respective block
-	private int _blockID;
-	private boolean _held, _valid, _dirty, _waitFetch, _waitPush;
-	private MyVirtualDisk _VDF;
+	private byte[] myBuffer; // Corresponds to information stored in respective block
+	private int blockID;
+	private Object cleanSignal, validSignal;
+	private boolean isHeld, isValid, isClean, isFetching, isPushing, isPinned;
+	private MyVirtualDisk VDF;
 	
+	public MyDBuffer() {
+		myBuffer = new byte[Constants.BLOCK_SIZE];
+		blockID = 0; // Indication that buffer is unused
+		cleanSignal = new Object();
+		validSignal = new Object();
+		isHeld = false;
+		isValid = false;
+		isClean = false;
+		isFetching = false;
+		isPushing = false;
+		isPinned = false;
+		VDF = MyVirtualDisk.getInstance();
+	}
+
+	public MyDBuffer(boolean pinned) {
+		this();
+		this.isPinned = pinned;
+	}
 	
-	public MyDBuffer(int blockID) {
-		_blockID = blockID;
-		_blockBytes = new byte[Constants.BLOCK_SIZE];
-		_held = false;
-		_valid = false;
-		_VDF = MyVirtualDisk.getInstance();
+	public boolean isPinned() {
+		return isPinned;
+	}
+	
+	public void setBlockID(int blockID) {
+		this.blockID = blockID;
+	}
+
+	public void clearBuffer() {
+		myBuffer = new byte[Constants.BLOCK_SIZE];
 	}
 	
 	@Override
 	public void startFetch() {
 		try {
-			_waitFetch = true;
-			_VDF.startRequest(this, Constants.DiskOperationType.READ);
+			isFetching = true;
+			VDF.startRequest(this, Constants.DiskOperationType.READ);
 		} catch (IllegalArgumentException e) {
 			e.printStackTrace();
 		}
@@ -33,8 +56,8 @@ public class MyDBuffer extends DBuffer {
 	@Override
 	public void startPush() {
 		try {
-			_waitPush = true;
-			_VDF.startRequest(this, Constants.DiskOperationType.WRITE);
+			isPushing = true;
+			VDF.startRequest(this, Constants.DiskOperationType.WRITE);
 		} catch (IllegalArgumentException e) {
 			e.printStackTrace();
 		}
@@ -42,15 +65,15 @@ public class MyDBuffer extends DBuffer {
 
 	@Override
 	public boolean checkValid() {
-		return _valid;
+		return isValid;
 	}
 
 	@Override
 	public boolean waitValid() {
-		while (_waitFetch) {
+		while (isFetching && !isValid) {
 			try {
-				synchronized(this) {
-					this.wait();
+				synchronized(validSignal) {
+					validSignal.wait();
 				}
 			} catch (InterruptedException e) {
 				e.printStackTrace();
@@ -61,14 +84,16 @@ public class MyDBuffer extends DBuffer {
 
 	@Override
 	public boolean checkClean() {
-		return !_dirty;
+		return isClean;
 	}
 
 	@Override
 	public boolean waitClean() {
-		while (_waitPush) {
+		while (isPushing && !isClean) {
 			try {
-				this.wait();
+				synchronized(cleanSignal) {
+					cleanSignal.wait();
+				}
 			} catch (InterruptedException e) {
 				e.printStackTrace();
 			}
@@ -78,67 +103,90 @@ public class MyDBuffer extends DBuffer {
 
 	@Override
 	public boolean isBusy() {
-		return _held || _waitFetch || _waitPush;
+		return isHeld || isFetching || isPushing;
+	}
+
+	public boolean cannotRead() {
+		if (!isHeld && !isPinned) {
+			return true;
+		}
+		if (!isValid) {
+			System.out.println("MyDBuffer.read() Buffer invalid");
+			return true;
+		}	
+		return false;
 	}
 
 	@Override
 	public int read(byte[] buffer, int startOffset, int count) {
-		if (!_held) {
-			return -1;
-		}
+		if (cannotRead()) return -1;
 		int bytesRead = 0;
-		if (!_valid) {
-			System.out.println("WAITING");
-			waitValid();
-		}	
 		for (int i = startOffset; i < count; ++i, ++bytesRead) {
-			buffer[i] = _blockBytes[i-startOffset];
+			buffer[i] = myBuffer[i-startOffset];
 		}
 		return bytesRead;
 	}
 
+	public boolean cannotWrite() {
+		if (!isHeld && !isPinned) {
+			System.out.println("MyDBuffer.write Buffer NOT HELD");
+			return true;
+		}
+		return false;
+	}
+	
 	@Override
 	public int write(byte[] buffer, int startOffset, int count) {
-		if (!_held) {
-			return -1;
-		}
+		if (cannotWrite()) return -1;
 		int bytesWritten = 0;
 		for (int i = startOffset; i < count; ++i, ++bytesWritten) {
-			_blockBytes[i-startOffset] = buffer[i]; 
+			if (i >= myBuffer.length || i >= buffer.length) {
+				System.out.println("MyDBuffer.write() OUT OF BOUNDS");
+				break;
+			}
+			myBuffer[i-startOffset] = buffer[i]; 
 		}
-		_dirty = true;
+		isClean = false;
 		return bytesWritten;
 	}
 
 	@Override
 	public void ioComplete() {
-		if (_waitFetch) {
-			_valid = true;
-			_waitFetch = false;
-		} else if (_waitPush) {
-			_waitPush = false;
+		if (isFetching) {
+			isFetching = false;
+			isValid = true;
+			synchronized(validSignal) {
+				validSignal.notify();
+			}
+		} else if (isPushing) {
+			isPushing = false;
+			isClean = true;
+			synchronized(cleanSignal) {
+				cleanSignal.notify();
+			}
 		}
-		synchronized(this) {
-			this.notify();
+		MyDBufferCache cache = MyDBufferCache.getInstance();
+		if (cache.waitingOnBuffers()) {
+			cache.signalBufferReady();
 		}
 	}
 
 	@Override
 	public int getBlockID() {
-		return new Integer(_blockID);
+		return new Integer(blockID);
 	}
 
 	@Override
 	public byte[] getBuffer() {
-		return _blockBytes;
+		return myBuffer;
 	}
 	
 	public void holdBuffer() {
-		_held = true;
+		isHeld = true;
 	}
 	
 	public void releaseBuffer() {
-		_held = false;
+		isHeld = false;
 	}
 
 }
