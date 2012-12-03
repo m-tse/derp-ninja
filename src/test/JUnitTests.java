@@ -81,17 +81,14 @@ public class JUnitTests {
 		DFS myDFS = new MyDFS(true);
 		String testString = "1234567890";
 		byte[] writeFromBuffer = testString.getBytes();
-//		int bytesPerChar = writeFromBuffer.length/testString.length();
+
 		int readOffset = 5;
 		DFileID dfid = myDFS.createDFile();
 		myDFS.write(dfid, writeFromBuffer, 0, writeFromBuffer.length);
 		byte[] readToBuffer = new byte[writeFromBuffer.length];
 		myDFS.read(dfid, readToBuffer, readOffset, readToBuffer.length);
 		
-//		String readToString = new String(readToBuffer);
-//		String writeFromBufferString = new String(writeFromBuffer);
-//		System.out.println(readToString);
-//		System.out.println(writeFromBufferString);
+
 		for(int i = 0;i<readToBuffer.length-readOffset;i++){
 			assertTrue(readToBuffer[i]==writeFromBuffer[i+readOffset]);
 		}
@@ -102,7 +99,7 @@ public class JUnitTests {
 		int writeOffset = 3;
 		myDFS.write(dfid2, writeFromBuffer, writeOffset, writeFromBuffer.length-writeOffset);
 		byte[] readToBuffer2 = new byte[writeFromBuffer.length-writeOffset];
-		myDFS.read(dfid2, readToBuffer2, writeOffset, writeFromBuffer.length-writeOffset);
+		myDFS.read(dfid2, readToBuffer2, 0, writeFromBuffer.length-writeOffset);
 		for(int i = 0;i<readToBuffer2.length;i++){
 			assertTrue(readToBuffer2[i]==writeFromBuffer[i+writeOffset]);
 		}

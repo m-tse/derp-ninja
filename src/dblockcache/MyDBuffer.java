@@ -145,12 +145,12 @@ public class MyDBuffer extends DBuffer {
 	public int write(byte[] buffer, int startOffset, int count) {
 		if (cannotWrite()) return -1;
 		int bytesWritten = 0;
-		for (int i = startOffset; i < count; ++i, ++bytesWritten) {
+		for (int i = 0; i < count; ++i, ++bytesWritten) {
 			if (i >= myBuffer.length || i >= buffer.length) {
 				System.out.println("MyDBuffer.write() OUT OF BOUNDS");
 				break;
 			}
-			myBuffer[i-startOffset] = buffer[i]; 
+			myBuffer[i] = buffer[startOffset+i]; 
 		}
 		isClean = false;
 		return bytesWritten;
