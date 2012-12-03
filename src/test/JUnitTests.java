@@ -154,7 +154,21 @@ public class JUnitTests {
 		}
 		
 		
-	}	
+	}
+	
+	@Test
+	public void testSpaceIsRecycled() throws IllegalArgumentException, FileNotFoundException, IOException{
+		DFS myDFS = new MyDFS(true);
+		DFileID[] dfileIDs = new DFileID[Constants.MAX_NUM_FILES];
+		//write them all
+		for(int i = 0;i<dfileIDs.length;i++){
+			dfileIDs[i]=myDFS.createDFile();
+			String writeString = "Hello DFS!"+ Integer.toString(i);
+			byte[] toWriteBuffer = writeString.getBytes();
+			myDFS.write(dfileIDs[i], toWriteBuffer, 0, toWriteBuffer.length);
+		}
+		//unfinished
+	}
 	
 	@Test
 	public void testConcurrentReadingClients(){
@@ -198,7 +212,7 @@ public class JUnitTests {
 			WriterClient w = new WriterClient(i, myDFS, completeCounter);
 			w.run();
 		}
-		int numReaderThreads = 10;
+		int numReaderThreads = 25;
 		for(int i = 0;i<numReaderThreads;i++){
 			ReaderClient r = new ReaderClient(myDFS, completeCounter);
 			r.run();
@@ -241,8 +255,11 @@ public class JUnitTests {
 		System.out.println("after second format");
 		assertTrue(newDFS.listAllDFiles().size()==0);
 	}
-//
-//
+
+
+	/*
+	 * I will use System.currentTimeinMilis to check most recently written data.
+	 */
 //	@Test
 //	public void testReadReturnsMostRecentlyWrittenData(){
 //		
