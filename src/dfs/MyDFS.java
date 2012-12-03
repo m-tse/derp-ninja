@@ -21,6 +21,15 @@ public class MyDFS extends DFS {
 	// TODO: Surpass max file size
 	// TODO: Update inode size
 	
+	private static MyDFS myInstance;
+	
+	public static MyDFS getInstance(){
+		if (myInstance == null) {
+			myInstance = new MyDFS();
+		}
+		return myInstance;
+	}
+	
 	
 	MyDBufferCache bufferCache;
 	DFileID[] fileIDs;
@@ -28,21 +37,21 @@ public class MyDFS extends DFS {
 	int[] freeMap;
 	
 	
-	public MyDFS(String volName, boolean format) {
+	private MyDFS(String volName, boolean format) {
 		super(volName, format);
 		bufferCache = MyDBufferCache.getInstance(); 
 		fileIDs = new DFileID[Constants.MAX_NUM_FILES];
 		iNodes = new INode[Constants.MAX_NUM_FILES];
 		freeMap = new int[Constants.NUM_OF_BLOCKS-Constants.BLOCK_OFFSET]; // Block 0, 1-8 reserved 
 		if (format) format();
-		this.readINodeRegion();
+		else this.readINodeRegion();
 	}
 	
-	public MyDFS(boolean format) {
+	private MyDFS(boolean format) {
 		this(Constants.vdiskName,format);
 	}
 
-	public MyDFS() {
+	private MyDFS() {
 		this(Constants.vdiskName,false);
 	}
 	
@@ -83,7 +92,12 @@ public class MyDFS extends DFS {
 	@Override
 	public boolean format() {
 //		System.out.println("FORMATING IN DFS");
+		bufferCache = MyDBufferCache.getInstance(); 
+		fileIDs = new DFileID[Constants.MAX_NUM_FILES];
+		iNodes = new INode[Constants.MAX_NUM_FILES];
+		freeMap = new int[Constants.NUM_OF_BLOCKS-Constants.BLOCK_OFFSET]; // Block 0, 1-8 reserved 
 		bufferCache.flush();
+		
 		return MyVirtualDisk.format();
 	}
 
