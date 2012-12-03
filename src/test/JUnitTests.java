@@ -212,7 +212,7 @@ public class JUnitTests {
 	@Test
 	public void testVeryLargeFiles() throws IllegalArgumentException, FileNotFoundException, IOException{
 		DFS myDFS = new MyDFS(true);
-		int twoExponent = 10;
+		int twoExponent = 8;
 		byte[] bigByteArray = new byte[(int) Math.pow(2, twoExponent)];
 		for(int i = 0;i<bigByteArray.length;i++){
 			bigByteArray[i]='1';
