@@ -55,7 +55,7 @@ public class JUnitTests {
 	@Test
 	public void testCreateAndDelete() throws FileNotFoundException, IOException{
 		myDFS.format();
-		assertTrue(myDFS.listAllDFiles().size()==0); //after format size should be zero
+
 		int baseSize = myDFS.listAllDFiles().size();
 		assertTrue(myDFS.listAllDFiles().size()==baseSize); //myDFS listDFile should be empty at start
 		DFileID newDFileID = myDFS.createDFile();
@@ -105,32 +105,42 @@ public class JUnitTests {
 			assertTrue(readToBuffer2[i]==writeFromBuffer[i+writeOffset]);
 		}
 	}
-//	@Test
-//	public void testPersistence() throws FileNotFoundException, IOException{
-//		
-//		myDFS.format();
-//		assertTrue(dfs1.listAllDFiles().size()==0);
-//
-//		byte[] buffer = "asdfasdfasdf".getBytes();
-//		DFileID dfid = dfs1.createDFile();
-//		dfs1.write(dfid, buffer, 0, buffer.length);
-//		assertTrue(dfs1.listAllDFiles().size()==1);
-//		
-//		//now instantiate another dfs, and check persistence of the first file
-//		DFS dfs2 = new MyDFS();
-//		List<DFileID> dfileids = dfs2.listAllDFiles();
-//		
-//		assertTrue(dfileids.size()==1); //there should already and only exist 1 dfile
-//		
-//		DFileID firstDFile = dfileids.get(0);
-//		byte[] readToBuffer = new byte[dfs2.sizeDFile(firstDFile)];
-//		dfs2.read(firstDFile, readToBuffer, 0, readToBuffer.length);
-//		System.out.println(new String(readToBuffer));
-//		System.out.println(new String(buffer));
-//		assertTrue(new String(buffer).equals(new String(readToBuffer)));
-//		
-//		
-//	}
+	
+	/*
+	 * Run this test to set up the file system for testing for persistence.  Then run only testPersistence() 
+	 * right afterwards
+	 */
+	@Ignore
+	@Test
+	public void setUpTestPersistence() throws IllegalArgumentException, FileNotFoundException, IOException{
+		myDFS.format();
+		assertTrue(myDFS.listAllDFiles().size()==0);
+
+		byte[] buffer = "asdfasdfasdf".getBytes();
+		DFileID dfid = myDFS.createDFile();
+		myDFS.write(dfid, buffer, 0, buffer.length);
+		assertTrue(myDFS.listAllDFiles().size()==1);
+	}
+	/*
+	 * Run this after running setUpTestPersistence()
+	 */
+	@Ignore
+	@Test
+	public void testPersistence() throws FileNotFoundException, IOException{
+		byte[] buffer =  "asdfasdfasdf".getBytes();
+		List<DFileID> dfileids = myDFS.listAllDFiles();
+		
+		assertTrue(dfileids.size()==1); //there should already and only exist 1 dfile
+		
+		DFileID firstDFile = dfileids.get(0);
+		byte[] readToBuffer = new byte[myDFS.sizeDFile(firstDFile)];
+		myDFS.read(firstDFile, readToBuffer, 0, readToBuffer.length);
+		System.out.println(new String(readToBuffer));
+		System.out.println(new String(buffer));
+		assertTrue(new String(buffer).equals(new String(readToBuffer)));
+		
+		
+	}
 	
 	@Test
 	public void testMaxSizeOfDFS() throws FileNotFoundException, IOException{
