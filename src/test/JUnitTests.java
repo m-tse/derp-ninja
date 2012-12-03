@@ -156,12 +156,13 @@ public class JUnitTests {
 		
 	}
 	
+
 	
 	@Test
 	public void testConcurrentReadingClients(){
 		DFS myDFS = new MyDFS(true);
 		ArrayList<Integer> completeCounter = new ArrayList<Integer>();
-		int numReaderThreads = 10;
+		int numReaderThreads = 50;
 		for(int i = 0;i<numReaderThreads;i++){
 			ReaderClient r = new ReaderClient(myDFS, completeCounter);
 			r.run();
@@ -173,26 +174,35 @@ public class JUnitTests {
 		//check that they all finished with no deadlocks
 	}
 	
-	@Test 
-	public void testAsynchronousWritingClients(){
+
+	@Test
+	public void testAsynchronousWritingClients() throws InterruptedException{
 		DFS myDFS = new MyDFS(true);
 		ArrayList<Integer> completeCounter = new ArrayList<Integer>();
-		int numWriterThreads = 5;
+
+		int numWriterThreads = 50;
+
 		for(int i = 0;i<numWriterThreads;i++){
 			WriterClient w = new WriterClient(i, myDFS, completeCounter);
 			w.run();
 		}
-		while(completeCounter.size()<numWriterThreads){
+		/*while(completeCounter.size()<numWriterThreads){
 			
-		}
+		}*/
+
+		Thread.sleep(5000);
+
+		System.out.println("SKEET SKEET SKEET MOTHAFUCKA");
+		System.out.println(completeCounter.size()+" threads have finished out of "+numWriterThreads);
 		assertTrue(completeCounter.size()==numWriterThreads);
 	}
 	
+
 	@Test 
 	public void testAsynchronousReadingAndWriting(){
 		DFS myDFS = new MyDFS(true);
 		ArrayList<Integer> completeCounter = new ArrayList<Integer>();
-		int numWriterThreads = 5;
+		int numWriterThreads = 25;
 		for(int i = 0;i<numWriterThreads;i++){
 			WriterClient w = new WriterClient(i, myDFS, completeCounter);
 			w.run();
@@ -230,7 +240,7 @@ public class JUnitTests {
 		
 		
 	}
-//
+
 	@Test
 	public void testFormat() throws IllegalArgumentException, FileNotFoundException, IOException{
 		DFS myDFS = new MyDFS(true);

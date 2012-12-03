@@ -94,6 +94,10 @@ public class MyDFS extends DFS {
 	
 	@Override
 	public DFileID createDFile() {
+		/*for (int i = 0; i < fileIDs.length; ++i) {
+			if (fileIDs[i]!= null) 
+				System.out.println(fileIDs[i].toString());
+		}*/
 		// Simple implementation for now: just file closest available ID
 		for (int i = 0; i < fileIDs.length; ++i) {
 			if (fileIDs[i] == null) {
@@ -111,6 +115,7 @@ public class MyDFS extends DFS {
 				return fileIDs[i];
 			}
 		}
+		System.err.println("RETURNING A NULL FILE ID!");
 		return null;
 	}
 

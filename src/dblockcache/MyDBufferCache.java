@@ -22,7 +22,6 @@ public class MyDBufferCache extends DBufferCache {
 	
 	private MyDBufferCache(int cacheSize) { // cacheSize = number of blocks 
 		super(cacheSize);
-		
 		bufferQueue = new RestrictedQueue<MyDBuffer>(cacheSize);
 		// Need to 'pin' buffers that we will always need: iNode and freeMap buffers
 		for (int i = 0; i < NUMRESERVED_BUFFERS; ++i) {
