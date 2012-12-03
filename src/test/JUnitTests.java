@@ -225,9 +225,13 @@ public class JUnitTests {
 		}
 		assertTrue(completeCounter.size()==numWriterThreads+numReaderThreads);
 	}
-//	
+	
+	/*
+	 * From the readme, a file will not exceed 50 blocks, each block is 1024 bytes, so we need 50*1024 bytes
+	 */
 	@Test
 	public void testVeryLargeFiles() throws IllegalArgumentException, FileNotFoundException, IOException{
+		
 		DFS myDFS = new MyDFS(true);
 		int twoExponent = 8;
 		byte[] bigByteArray = new byte[(int) Math.pow(2, twoExponent)];
