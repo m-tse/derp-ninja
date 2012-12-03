@@ -177,7 +177,7 @@ public class JUnitTests {
 	public void testAsynchronousWritingClients(){
 		DFS myDFS = new MyDFS(true);
 		ArrayList<Integer> completeCounter = new ArrayList<Integer>();
-		int numWriterThreads = 10;
+		int numWriterThreads = 5;
 		for(int i = 0;i<numWriterThreads;i++){
 			WriterClient w = new WriterClient(i, myDFS, completeCounter);
 			w.run();
@@ -209,7 +209,7 @@ public class JUnitTests {
 	}
 	
 	/*
-	 * From the readme, a file will not exceed 50 blocks, each block is 1024 bytes, so we need 50*1024 bytes
+	 * From the PDF, a file will not exceed 50 blocks, each block is 1024 bytes, so we need 50*1024 bytes
 	 */
 	@Test
 	public void testVeryLargeFiles() throws IllegalArgumentException, FileNotFoundException, IOException{
@@ -253,7 +253,7 @@ public class JUnitTests {
 	public void testSpaceIsRecycled() throws IllegalArgumentException, FileNotFoundException, IOException{
 		DFS myDFS = new MyDFS(true);
 		DFileID[] dfileIDs = new DFileID[Constants.MAX_NUM_FILES];
-		int blocksPerFile = Constants.NUM_OF_BLOCKS/Constants.MAX_NUM_FILES;
+		int blocksPerFile = (Constants.NUM_OF_BLOCKS-Constants.BLOCK_OFFSET)/Constants.MAX_NUM_FILES;
 		int bytesPerFile = blocksPerFile*Constants.BLOCK_SIZE;
 		//write them all
 		for(int i = 0;i<dfileIDs.length;i++){
@@ -284,11 +284,5 @@ public class JUnitTests {
 	}
 	
 
-	/*
-	 * I will use System.currentTimeinMilis to check most recently written data.
-	 */
-//	@Test
-//	public void testReadReturnsMostRecentlyWrittenData(){
-//		
-//	}
+
 }
