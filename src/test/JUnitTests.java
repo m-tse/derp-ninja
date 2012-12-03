@@ -32,10 +32,6 @@ public class JUnitTests {
 
 	
 	@Test
-<<<<<<< HEAD
-
-=======
->>>>>>> c5970d7c115384e85a385706cb10490fdd8699b0
 	public void testBasicWriteThenRead() throws FileNotFoundException, IOException{
 		DFS myDFS = new MyDFS(true); //start off by formatting the drive
 		DFileID newDFileID = myDFS.createDFile();
@@ -57,10 +53,6 @@ public class JUnitTests {
 	}
 
 	@Test
-<<<<<<< HEAD
-
-=======
->>>>>>> c5970d7c115384e85a385706cb10490fdd8699b0
 	public void testCreateAndDelete() throws FileNotFoundException, IOException{
 		DFS myDFS = new MyDFS(true);
 		assertTrue(myDFS.listAllDFiles().size()==0); //after format size should be zero
@@ -85,10 +77,6 @@ public class JUnitTests {
 	}
 	
 	@Test
-<<<<<<< HEAD
-
-=======
->>>>>>> c5970d7c115384e85a385706cb10490fdd8699b0
 	public void testOffset() throws FileNotFoundException, IOException{
 		//first test read offset
 		DFS myDFS = new MyDFS(true);
@@ -118,10 +106,6 @@ public class JUnitTests {
 		}
 	}
 	@Test
-<<<<<<< HEAD
-
-=======
->>>>>>> c5970d7c115384e85a385706cb10490fdd8699b0
 	public void testPersistence() throws FileNotFoundException, IOException{
 		DFS dfs1 = new MyDFS(true);
 		assertTrue(dfs1.listAllDFiles().size()==0);
@@ -148,10 +132,6 @@ public class JUnitTests {
 	}
 	
 	@Test
-<<<<<<< HEAD
-
-=======
->>>>>>> c5970d7c115384e85a385706cb10490fdd8699b0
 	public void testMaxSizeOfDFS() throws FileNotFoundException, IOException{
 		DFS myDFS = new MyDFS(true);
 		DFileID[] dfileIDs = new DFileID[Constants.MAX_NUM_FILES];
@@ -179,10 +159,6 @@ public class JUnitTests {
 
 	
 	@Test
-<<<<<<< HEAD
-
-=======
->>>>>>> c5970d7c115384e85a385706cb10490fdd8699b0
 	public void testConcurrentReadingClients(){
 		DFS myDFS = new MyDFS(true);
 		ArrayList<Integer> completeCounter = new ArrayList<Integer>();
@@ -200,10 +176,6 @@ public class JUnitTests {
 	
 
 	@Test
-<<<<<<< HEAD
-
-=======
->>>>>>> c5970d7c115384e85a385706cb10490fdd8699b0
 	public void testAsynchronousWritingClients() throws InterruptedException{
 		DFS myDFS = new MyDFS(true);
 		ArrayList<Integer> completeCounter = new ArrayList<Integer>();
@@ -227,10 +199,6 @@ public class JUnitTests {
 	
 
 	@Test 
-<<<<<<< HEAD
-
-=======
->>>>>>> c5970d7c115384e85a385706cb10490fdd8699b0
 	public void testAsynchronousReadingAndWriting(){
 		DFS myDFS = new MyDFS(true);
 		ArrayList<Integer> completeCounter = new ArrayList<Integer>();
@@ -254,10 +222,6 @@ public class JUnitTests {
 	 * From the PDF, a file will not exceed 50 blocks, each block is 1024 bytes, so we need 50*1024 bytes
 	 */
 	@Test
-<<<<<<< HEAD
-
-=======
->>>>>>> c5970d7c115384e85a385706cb10490fdd8699b0
 	public void testVeryLargeFiles() throws IllegalArgumentException, FileNotFoundException, IOException{
 		
 		DFS myDFS = new MyDFS(true);
@@ -278,10 +242,6 @@ public class JUnitTests {
 	}
 
 	@Test
-<<<<<<< HEAD
-
-=======
->>>>>>> c5970d7c115384e85a385706cb10490fdd8699b0
 	public void testFormat() throws IllegalArgumentException, FileNotFoundException, IOException{
 		DFS myDFS = new MyDFS(true);
 		assertTrue(myDFS.listAllDFiles().size()==0);
