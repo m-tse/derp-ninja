@@ -13,6 +13,7 @@ import org.junit.Test;
 import common.Constants;
 import common.DFileID;
 
+import dblockcache.MyDBufferCache;
 import dfs.DFS;
 import dfs.MyDFS;
 
@@ -33,7 +34,8 @@ public class JUnitTests {
 	
 	@Test
 	public void testBasicWriteThenRead() throws FileNotFoundException, IOException{
-		DFS myDFS = new MyDFS(true); //start off by formatting the drive
+		DFS myDFS = MyDFS.getInstance(); //start off by formatting the drive
+		myDFS.format();
 		DFileID newDFileID = myDFS.createDFile();
 		String helloString = "Hello World!";
 		byte[] WrittenFromBuffer = helloString.getBytes();
@@ -54,7 +56,8 @@ public class JUnitTests {
 
 	@Test
 	public void testCreateAndDelete() throws FileNotFoundException, IOException{
-		DFS myDFS = new MyDFS(true);
+		DFS myDFS = MyDFS.getInstance(); //start off by formatting the drive
+		myDFS.format();
 		assertTrue(myDFS.listAllDFiles().size()==0); //after format size should be zero
 		int baseSize = myDFS.listAllDFiles().size();
 		assertTrue(myDFS.listAllDFiles().size()==baseSize); //myDFS listDFile should be empty at start
@@ -79,7 +82,8 @@ public class JUnitTests {
 	@Test
 	public void testOffset() throws FileNotFoundException, IOException{
 		//first test read offset
-		DFS myDFS = new MyDFS(true);
+		DFS myDFS = MyDFS.getInstance(); //start off by formatting the drive
+		myDFS.format();
 		String testString = "1234567890";
 		byte[] writeFromBuffer = testString.getBytes();
 
@@ -107,7 +111,8 @@ public class JUnitTests {
 	}
 	@Test
 	public void testPersistence() throws FileNotFoundException, IOException{
-		DFS dfs1 = new MyDFS(true);
+		DFS dfs1 = MyDFS.getInstance(); //start off by formatting the drive
+		dfs1.format();
 		assertTrue(dfs1.listAllDFiles().size()==0);
 
 		byte[] buffer = "asdfasdfasdf".getBytes();
@@ -116,7 +121,8 @@ public class JUnitTests {
 		assertTrue(dfs1.listAllDFiles().size()==1);
 		
 		//now instantiate another dfs, and check persistence of the first file
-		DFS dfs2 = new MyDFS();
+		DFS dfs2 = MyDFS.getInstance(); //start off by formatting the drive
+		dfs2.format();
 		List<DFileID> dfileids = dfs2.listAllDFiles();
 		
 		assertTrue(dfileids.size()==1); //there should already and only exist 1 dfile
@@ -133,7 +139,9 @@ public class JUnitTests {
 	
 	@Test
 	public void testMaxSizeOfDFS() throws FileNotFoundException, IOException{
-		DFS myDFS = new MyDFS(true);
+		DFS myDFS = MyDFS.getInstance(); //start off by formatting the drive
+		myDFS.format();
+		
 		DFileID[] dfileIDs = new DFileID[Constants.MAX_NUM_FILES];
 		//write them all
 		for(int i = 0;i<dfileIDs.length;i++){
@@ -158,7 +166,8 @@ public class JUnitTests {
 	
 	@Test
 	public void testSpaceIsRecycled() throws IllegalArgumentException, FileNotFoundException, IOException{
-		DFS myDFS = new MyDFS(true);
+		DFS myDFS = MyDFS.getInstance(); //start off by formatting the drive
+		myDFS.format();
 		DFileID[] dfileIDs = new DFileID[Constants.MAX_NUM_FILES];
 		//write them all
 		for(int i = 0;i<dfileIDs.length;i++){
@@ -172,7 +181,8 @@ public class JUnitTests {
 	
 	@Test
 	public void testConcurrentReadingClients(){
-		DFS myDFS = new MyDFS(true);
+		DFS myDFS = MyDFS.getInstance(); //start off by formatting the drive
+		myDFS.format();
 		ArrayList<Integer> completeCounter = new ArrayList<Integer>();
 		int numReaderThreads = 10;
 		for(int i = 0;i<numReaderThreads;i++){
@@ -189,7 +199,8 @@ public class JUnitTests {
 	@Test
 	@Ignore 
 	public void testAsynchronousWritingClients(){
-		DFS myDFS = new MyDFS(true);
+		DFS myDFS = MyDFS.getInstance(); //start off by formatting the drive
+		myDFS.format();
 		ArrayList<Integer> completeCounter = new ArrayList<Integer>();
 		int numWriterThreads = 10;
 		for(int i = 0;i<numWriterThreads;i++){
@@ -205,7 +216,8 @@ public class JUnitTests {
 	@Test
 	@Ignore 
 	public void testAsynchronousReadingAndWriting(){
-		DFS myDFS = new MyDFS(true);
+		DFS myDFS = MyDFS.getInstance(); //start off by formatting the drive
+		myDFS.format();
 		ArrayList<Integer> completeCounter = new ArrayList<Integer>();
 		int numWriterThreads = 5;
 		for(int i = 0;i<numWriterThreads;i++){
@@ -225,7 +237,8 @@ public class JUnitTests {
 //	
 	@Test
 	public void testVeryLargeFiles() throws IllegalArgumentException, FileNotFoundException, IOException{
-		DFS myDFS = new MyDFS(true);
+		DFS myDFS = MyDFS.getInstance(); //start off by formatting the drive
+		myDFS.format();
 		int twoExponent = 8;
 		byte[] bigByteArray = new byte[(int) Math.pow(2, twoExponent)];
 		for(int i = 0;i<bigByteArray.length;i++){
@@ -235,23 +248,51 @@ public class JUnitTests {
 		myDFS.write(dfid, bigByteArray, 0, bigByteArray.length);
 		byte[] readToArray = new byte[bigByteArray.length];
 		myDFS.read(dfid, readToArray, 0, bigByteArray.length);
-		for(int i = 0;i<readToArray.length;i++){
-			assertTrue(bigByteArray[i]==readToArray[i]);
-		}
+		String s1 = new String(bigByteArray);
+		String s2 = new String(readToArray);
+		System.err.println("STRING 1: " + s1);
+		System.err.println("STRING 2: " + s2);
+		assertTrue(s1.equals(s2));
+//		for(int i = 0;i<readToArray.length;i++){
+//			assertTrue(bigByteArray[i]==readToArray[i]);
+//		}
 		
 		
 	}
 //
+	
+	@Test
+	// Check num of held buffers
+	public void testBufferHoldAndRelease() throws IllegalArgumentException, FileNotFoundException, IOException {
+		DFS myDFS = MyDFS.getInstance();
+		myDFS.format();
+		byte[] writeFromBuffer = "Herpa derpa".getBytes();
+		DFileID dfid = myDFS.createDFile();
+		myDFS.write(dfid, writeFromBuffer, 0, writeFromBuffer.length);
+		byte[] readToBuffer = new byte[writeFromBuffer.length];
+		myDFS.read(dfid, readToBuffer, 0, readToBuffer.length);
+		DFileID dfid2 = myDFS.createDFile();
+		myDFS.write(dfid2, readToBuffer, 0, readToBuffer.length);
+		byte[] readToBuffer2 = new byte[readToBuffer.length];
+		myDFS.read(dfid2, readToBuffer2, 0, readToBuffer2.length);
+		System.err.println(MyDBufferCache.getInstance().numHeldBlocks());
+		assertTrue(MyDBufferCache.getInstance().numHeldBlocks() == Constants.INODE_REGION_SIZE_BLOCKS);
+	}
+	
+	
+	
 	@Test
 	public void testFormat() throws IllegalArgumentException, FileNotFoundException, IOException{
-		DFS myDFS = new MyDFS(true);
+		DFS myDFS = MyDFS.getInstance(); //start off by formatting the drive
+		myDFS.format();
 		assertTrue(myDFS.listAllDFiles().size()==0);
 		byte[] writeFromBuffer = "adsfasdf".getBytes();
 		DFileID dfid = myDFS.createDFile();
 		myDFS.write(dfid, writeFromBuffer, 0, writeFromBuffer.length);
 		assertTrue(myDFS.listAllDFiles().size()==1);
 		System.out.println("before second format");
-		DFS newDFS = new MyDFS(true);
+		DFS newDFS = MyDFS.getInstance(); //start off by formatting the drive
+		newDFS.format();
 		System.out.println("after second format");
 		assertTrue(newDFS.listAllDFiles().size()==0);
 	}

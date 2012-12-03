@@ -21,14 +21,22 @@ public class MyDFS extends DFS {
 	// TODO: Surpass max file size
 	// TODO: Update inode size
 	
-	
 	MyDBufferCache bufferCache;
 	DFileID[] fileIDs;
 	INode[] iNodes;
 	int[] freeMap;
 	
+	private static MyDFS myInstance;
 	
-	public MyDFS(String volName, boolean format) {
+	
+	public static MyDFS getInstance() {
+		if (myInstance == null) {
+			myInstance = new MyDFS();
+		} 
+		return myInstance;
+	}
+	
+	private MyDFS(String volName, boolean format) {
 		super(volName, format);
 		bufferCache = MyDBufferCache.getInstance(); 
 		fileIDs = new DFileID[Constants.MAX_NUM_FILES];
@@ -38,11 +46,11 @@ public class MyDFS extends DFS {
 		this.readINodeRegion();
 	}
 	
-	public MyDFS(boolean format) {
+	private MyDFS(boolean format) {
 		this(Constants.vdiskName,format);
 	}
 
-	public MyDFS() {
+	private MyDFS() {
 		this(Constants.vdiskName,false);
 	}
 	
@@ -70,15 +78,32 @@ public class MyDFS extends DFS {
 					System.out.println("MyDFS.readINodeRegion(): YESSS");
 					System.out.println("- Got iNode for fileID: " + fileID);
 					// Convert bytes into iNode information
-					iNodes[fileID] = iNode;
-					fileIDs[fileID] = new DFileID(fileID);
-					for (int n: iNode.getBlockArray()) {
-						freeMap[n-Constants.BLOCK_OFFSET] = 1; // Not free, -offset account for block 0 and inode region
-					}
+					populateFreeMap(iNode, fileID, bufferBytes);
 				}
 			}
 		}
 	}
+	
+	private void populateFreeMap(INode iNode, int fileID, byte[] bufferBytes) {
+		iNodes[fileID] = iNode;
+		fileIDs[fileID] = new DFileID(fileID);
+		int[] blocks = iNode.getBlockArray();
+		for (int n = 0; n < blocks.length; ++n) {
+			if (n == blocks.length-1) {
+				INode nestedNode = new INode(Arrays.copyOfRange(
+						bufferBytes, blocks[n], blocks[n]+Constants.INODE_SIZE));
+				nestedNode.setDFileID(new DFileID(blocks[n]/Constants.INODE_SIZE));
+				++fileID;
+				if (fileID >= fileIDs.length) {
+					return;
+				}
+				populateFreeMap(nestedNode, fileID, bufferBytes);
+				break;
+			}
+			freeMap[blocks[n]] = 1; // Not free, -offset account for block 0 and inode region
+		}
+	}
+
 	
 	@Override
 	public boolean format() {
@@ -90,7 +115,6 @@ public class MyDFS extends DFS {
 	public boolean fileExists(DFileID dfid) {
 		return fileIDs[dfid.getInt()] != null ? true: false;
 	}
-	
 	
 	@Override
 	public DFileID createDFile() {
@@ -111,7 +135,7 @@ public class MyDFS extends DFS {
 				return fileIDs[i];
 			}
 		}
-		return null;
+		throw new DFSException("Maximum number of files reached.");
 	}
 
 	@Override
@@ -128,14 +152,14 @@ public class MyDFS extends DFS {
 		}
 	}
 	
-	public int getNextFreeBlock() {
+	public int getNextFreeBlock() throws DFSException {
 		for (int i = 0; i < freeMap.length; ++i) {
 			if (freeMap[i] == 0) {
 				freeMap[i] = 1;
 				return i+Constants.BLOCK_OFFSET; // includes block 0 and inode region
 			}
 		}
-		return 0;
+		throw new DFSException("No more free blocks.");
 	}
 	
 	@Override
@@ -156,7 +180,12 @@ public class MyDFS extends DFS {
 					dbuf.startFetch();
 					dbuf.waitValid();
 				}
-				int bytesRead = dbuf.read(buffer, startOffset, count);
+				int numBytesRead = count;
+				if (numBytesRead > Constants.BLOCK_SIZE) {
+					numBytesRead = Constants.BLOCK_SIZE;
+					count -= numBytesRead;
+				}
+				int bytesRead = dbuf.read(buffer, startOffset, numBytesRead);
 				totalBytesRead += bytesRead;
 				bufferCache.releaseBlock(dbuf);
 				System.out.println(bytesRead);
@@ -193,8 +222,15 @@ public class MyDFS extends DFS {
 						iNode.writeToBuffer(dbuf);
 					}
 				}
+
+				int numBytesWrite = count;
+				if (numBytesWrite > Constants.BLOCK_SIZE) {
+					count -= Constants.BLOCK_SIZE;
+					numBytesWrite = Constants.BLOCK_SIZE;
+				}
+
 				DBuffer dbuf = bufferCache.getBlock(blocks[i]);
-				int bytesWritten = dbuf.write(buffer, startOffset, count);
+				int bytesWritten = dbuf.write(buffer, startOffset, numBytesWrite);
 				if (bytesWritten == -1) System.err.println("MyDFS.write() WRITE FAILED");
 				totalBytesWritten += bytesWritten;
 				iNode.increaseFileSize(bytesWritten);
@@ -237,7 +273,23 @@ public class MyDFS extends DFS {
 		bufferCache.sync();
 	}
 	
+	public class DFSException extends RuntimeException {
+
+		private static final long serialVersionUID = 1L;
+
+		DFSException(String message) {
+			super(message);
+		}
+	}
+
+	@Override
+	public void finalize() throws Throwable {
+		this.sync();
+		super.finalize();
+	}
 	
 }	
-	
+
+
+
 

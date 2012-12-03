@@ -9,14 +9,14 @@ public class Constants {
 	 * Constants for smaller sized disk - testing purposes
 	 */
 	public static final int NUM_OF_BLOCKS = 6; // 2^14
-	public static final int BLOCK_SIZE = 48; // 1kB
+	public static final int BLOCK_SIZE = 64; // 1kB
 
 	/* BEGIN: For TESTING purposes */
 	
 	/* Our constants */
 	public static final int MAX_NUM_FILES = 4; // This many inodes
 	public static final int MAX_FILE_BLOCK_SIZE = 1; //Max num of blocks per file
-	public static final int INODE_SIZE = 12;
+	public static final int INODE_SIZE = 16;
 	public static final int INODE_REGION_SIZE_BYTES = INODE_SIZE * MAX_NUM_FILES;
 	public static final int INODE_REGION_SIZE_BLOCKS = INODE_REGION_SIZE_BYTES / BLOCK_SIZE;
 	public static final int INODES_PER_BLOCK = BLOCK_SIZE/INODE_SIZE; 

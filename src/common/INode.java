@@ -5,6 +5,7 @@ import java.util.Arrays;
 
 import dblockcache.DBuffer;
 import dblockcache.MyDBufferCache;
+import dfs.MyDFS;
 
 public class INode {
 
@@ -16,6 +17,7 @@ public class INode {
 	
 	// Pointer to last available position on disk
 	private static int endOffset = Constants.INODE_REGION_SIZE_BYTES; 
+	private static final int BLOCKS_ARRAY_SIZE = Constants.MAX_FILE_BLOCK_SIZE+1;
 	
 	// INode byte format
 	/*
@@ -44,19 +46,20 @@ public class INode {
 		fileSize = bb.getInt();
 
 		// Retrieve blocks
-		blocks = new int[Constants.MAX_FILE_BLOCK_SIZE];
+		blocks = new int[BLOCKS_ARRAY_SIZE];
 		int index = 0;
 		byte[] blockBytes = new byte[4];
 		for (int i = 8 ; i < iNodeBytes.length; ++i) {
-//			if (i == iNodeBytes.length-1) {
-//				if (i != 0) {
-//					this.next = createNestedNode(i);
-//				} else this.next = null;
-//			}
+
 			blockBytes[i%4] = iNodeBytes[i];
 			if ((i+1) % 4 == 0) {
 				bb = ByteBuffer.wrap(blockBytes);
 				int blockNum = bb.getInt(); 
+				if (i == iNodeBytes.length-1) {
+					if (blockNum != 0) {
+						this.next = createNestedNode(blockNum);
+					} else this.next = null;
+				}
 				blocks[index] = blockNum; 
 				index++;
 				blockBytes = new byte[4];
@@ -67,6 +70,8 @@ public class INode {
 	public INode createNestedNode(int offset) {
 		int blockNum = offset/Constants.BLOCK_SIZE;
 		int blockOffset = offset-(blockNum*Constants.BLOCK_SIZE);
+		System.out.println("BLOCK :"+blockNum);
+		System.out.println("BLOCK offset :"+blockOffset);
 		MyDBufferCache cache = MyDBufferCache.getInstance();
 		DBuffer dbuf = cache.getBlock(blockNum+1);
 		byte[] blockBytes = new byte[Constants.BLOCK_SIZE];
@@ -122,7 +127,7 @@ public class INode {
 	}
 	
 	public INode(DFileID fileID) {
-		blocks = new int[Constants.MAX_FILE_BLOCK_SIZE]; // 62*4 bytes = 248 bytes
+		blocks = new int[BLOCKS_ARRAY_SIZE]; // 62*4 bytes = 248 bytes
 		fileSize = 0; // 4 bytes
 		this.fileID = fileID; // 4 bytes
 		next = null;
@@ -157,29 +162,31 @@ public class INode {
 		this.blocks = blocks;
 	}
 	
-	
 	public void addBlock(int newBlock) {
+		System.out.println(Arrays.toString(blocks));
 		for (int i = 0; i < blocks.length; ++i) {
-//			if (i == blocks.length-1) break; // Reserve last block for inode pointer - large files
+			if (i == blocks.length-1) break; // Reserve last block for inode pointer - large files
 			if (blocks[i] == 0) {
 				blocks[i] = newBlock;
 				return;
 			}
 		}
 		// Code for larger files - use recursion?
-//		if (next == null) {
-//			next = new INode(this.getDFileID());
-//			endOffset -= Constants.INODE_SIZE;
-//			while (!createNestedNode(endOffset).isNotUsed()) {
-//				endOffset -= Constants.INODE_SIZE;
-//				if (endOffset <= 0) {
-//					System.err.println("Cannot create anymore nodes");
-//					return;
-//				}
-//			}
-//			blocks[blocks.length-1] = endOffset;
-//		} 
-//		next.addBlock(newBlock);
+		if (next == null) {
+			next = new INode(MyDFS.getInstance().createDFile());
+			endOffset -= Constants.INODE_SIZE;
+			int offset = endOffset;
+			while (!createNestedNode(offset).isNotUsed()) {
+				offset -= Constants.INODE_SIZE;
+				if (offset <= 0) {
+					System.err.println("Cannot create anymore nodes");
+					return;
+				}
+			}
+			blocks[blocks.length-1] = endOffset;
+		} 
+		next.addBlock(newBlock);
+		next.writeToBuffer(MyDBufferCache.getInstance().getBlock(this.getDFileID().getInt()/Constants.INODES_PER_BLOCK + 1));
 	}
 	
 	public void removeBlock(int oldBlock) {
@@ -223,6 +230,10 @@ public class INode {
 			}
 		}
 		return true;
+	}
+	
+	public void setDFileID(DFileID dfid) {
+		this.fileID = dfid;
 	}
 	
 }

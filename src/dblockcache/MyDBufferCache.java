@@ -102,8 +102,7 @@ public class MyDBufferCache extends DBufferCache {
 	
 	
 	public synchronized void waitOnBuffers() {
-		while(allBuffersBusy) {
-			try {
+		while(allBuffersBusy) { try {
 				this.wait();
 			} catch (InterruptedException e) {
 				e.printStackTrace();
@@ -134,4 +133,15 @@ public class MyDBufferCache extends DBufferCache {
 		}
 		
 	}
+	
+	public int numHeldBlocks() {
+		int count = 0;
+		for (MyDBuffer buf: bufferQueue) {
+			if (buf.isHeld()) {
+				++count;
+			}
+		}
+		return count;
+	}
+	
 }

@@ -182,6 +182,10 @@ public class MyDBuffer extends DBuffer {
 		return new Integer(blockID);
 	}
 
+	public boolean isHeld() {
+		return isHeld;
+	}
+	
 	@Override
 	public byte[] getBuffer() {
 		return myBuffer;
