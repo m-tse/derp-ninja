@@ -82,6 +82,7 @@ public class MyDFS extends DFS {
 					iNodes[fileID] = iNode;
 					fileIDs[fileID] = new DFileID(fileID);
 					for (int n: iNode.getBlockArray()) {
+						if(n==0) continue;
 						freeMap[n-Constants.BLOCK_OFFSET] = 1; // Not free, -offset account for block 0 and inode region
 					}
 				}
@@ -255,7 +256,17 @@ public class MyDFS extends DFS {
 	public void sync() {
 		bufferCache.sync();
 	}
-	
+	@Override
+	protected void finalize()
+	{
+		this.sync();
+		try {
+			super.finalize();
+		} catch (Throwable e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
 	
 }	
 	
