@@ -2,6 +2,7 @@ package dfs;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 
 import virtualdisk.MyVirtualDisk;
@@ -11,7 +12,7 @@ import common.DFileID;
 import common.INode;
 
 import dblockcache.DBuffer;
-import dblockcache.DBufferCache;
+import dblockcache.MyDBuffer;
 import dblockcache.MyDBufferCache;
 
 public class MyDFS extends DFS {
@@ -48,7 +49,7 @@ public class MyDFS extends DFS {
 	private void readINodeRegion() {
 		int fileID = 0;
 		for (int i = 0; i < iNodes.length/Constants.INODES_PER_BLOCK; ++i) {
-			DBuffer dbuf = bufferCache.getBlock(i+1); // i+1 because block 0 reserved 
+			MyDBuffer dbuf = (MyDBuffer) bufferCache.getBlock(i+1); // i+1 because block 0 reserved 
 			if (!dbuf.checkValid()) {
 				dbuf.startFetch();
 				dbuf.waitValid();
@@ -148,7 +149,7 @@ public class MyDFS extends DFS {
 			int[] blocks = iNode.getBlockArray();
 			System.out.println(Arrays.toString(blocks));
 			for (int i = 0; i < blocks.length; ++i) {
-				System.out.println("MyDFS.read(): " + blocks[i]);
+				System.out.println("MyDFS.read() block: " + blocks[i]);
 				if (blocks[i] == 0) continue; 
 				DBuffer dbuf = bufferCache.getBlock(blocks[i]);
 				if (!dbuf.checkValid()) {
@@ -158,6 +159,7 @@ public class MyDFS extends DFS {
 				int bytesRead = dbuf.read(buffer, startOffset, count);
 				totalBytesRead += bytesRead;
 				bufferCache.releaseBlock(dbuf);
+				System.out.println(bytesRead);
 				if (count == totalBytesRead) break;  
 			}
 		}
@@ -196,6 +198,7 @@ public class MyDFS extends DFS {
 				if (bytesWritten == -1) System.err.println("MyDFS.write() WRITE FAILED");
 				totalBytesWritten += bytesWritten;
 				iNode.increaseFileSize(bytesWritten);
+				iNode.writeToBuffer(bufferCache.getBlock(iNode.getDFileID().getInt()/Constants.INODES_PER_BLOCK + 1));
 				dbuf.startPush();
 				dbuf.waitClean();
 				bufferCache.releaseBlock(dbuf);
