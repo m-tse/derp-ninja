@@ -47,6 +47,9 @@ public class INode {
 		int index = 0;
 		byte[] blockBytes = new byte[4];
 		for (int i = 8 ; i < iNodeBytes.length; ++i) {
+			if (i == iNodeBytes.length-1) {
+				//
+			}
 			blockBytes[i%4] = iNodeBytes[i];
 			if ((i+1) % 4 == 0) {
 				bb = ByteBuffer.wrap(blockBytes);
@@ -144,7 +147,6 @@ public class INode {
 		}
 		// Code for larger files - use recursion?
 		INode next = new INode(this.getDFileID());
-		_blocks[_blocks.length-1] = next;
 		System.err.println("Could not add block to inode, no more space");
 	}
 	
