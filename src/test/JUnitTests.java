@@ -32,7 +32,10 @@ public class JUnitTests {
 
 	
 	@Test
+<<<<<<< HEAD
 
+=======
+>>>>>>> c5970d7c115384e85a385706cb10490fdd8699b0
 	public void testBasicWriteThenRead() throws FileNotFoundException, IOException{
 		DFS myDFS = new MyDFS(true); //start off by formatting the drive
 		DFileID newDFileID = myDFS.createDFile();
@@ -54,7 +57,10 @@ public class JUnitTests {
 	}
 
 	@Test
+<<<<<<< HEAD
 
+=======
+>>>>>>> c5970d7c115384e85a385706cb10490fdd8699b0
 	public void testCreateAndDelete() throws FileNotFoundException, IOException{
 		DFS myDFS = new MyDFS(true);
 		assertTrue(myDFS.listAllDFiles().size()==0); //after format size should be zero
@@ -79,7 +85,10 @@ public class JUnitTests {
 	}
 	
 	@Test
+<<<<<<< HEAD
 
+=======
+>>>>>>> c5970d7c115384e85a385706cb10490fdd8699b0
 	public void testOffset() throws FileNotFoundException, IOException{
 		//first test read offset
 		DFS myDFS = new MyDFS(true);
@@ -109,7 +118,10 @@ public class JUnitTests {
 		}
 	}
 	@Test
+<<<<<<< HEAD
 
+=======
+>>>>>>> c5970d7c115384e85a385706cb10490fdd8699b0
 	public void testPersistence() throws FileNotFoundException, IOException{
 		DFS dfs1 = new MyDFS(true);
 		assertTrue(dfs1.listAllDFiles().size()==0);
@@ -136,7 +148,10 @@ public class JUnitTests {
 	}
 	
 	@Test
+<<<<<<< HEAD
 
+=======
+>>>>>>> c5970d7c115384e85a385706cb10490fdd8699b0
 	public void testMaxSizeOfDFS() throws FileNotFoundException, IOException{
 		DFS myDFS = new MyDFS(true);
 		DFileID[] dfileIDs = new DFileID[Constants.MAX_NUM_FILES];
@@ -164,7 +179,10 @@ public class JUnitTests {
 
 	
 	@Test
+<<<<<<< HEAD
 
+=======
+>>>>>>> c5970d7c115384e85a385706cb10490fdd8699b0
 	public void testConcurrentReadingClients(){
 		DFS myDFS = new MyDFS(true);
 		ArrayList<Integer> completeCounter = new ArrayList<Integer>();
@@ -182,11 +200,16 @@ public class JUnitTests {
 	
 
 	@Test
+<<<<<<< HEAD
 
+=======
+>>>>>>> c5970d7c115384e85a385706cb10490fdd8699b0
 	public void testAsynchronousWritingClients() throws InterruptedException{
 		DFS myDFS = new MyDFS(true);
 		ArrayList<Integer> completeCounter = new ArrayList<Integer>();
+
 		int numWriterThreads = 50;
+
 		for(int i = 0;i<numWriterThreads;i++){
 			WriterClient w = new WriterClient(i, myDFS, completeCounter);
 			w.run();
@@ -204,7 +227,10 @@ public class JUnitTests {
 	
 
 	@Test 
+<<<<<<< HEAD
 
+=======
+>>>>>>> c5970d7c115384e85a385706cb10490fdd8699b0
 	public void testAsynchronousReadingAndWriting(){
 		DFS myDFS = new MyDFS(true);
 		ArrayList<Integer> completeCounter = new ArrayList<Integer>();
@@ -225,10 +251,13 @@ public class JUnitTests {
 	}
 	
 	/*
-	 * From the readme, a file will not exceed 50 blocks, each block is 1024 bytes, so we need 50*1024 bytes
+	 * From the PDF, a file will not exceed 50 blocks, each block is 1024 bytes, so we need 50*1024 bytes
 	 */
 	@Test
+<<<<<<< HEAD
 
+=======
+>>>>>>> c5970d7c115384e85a385706cb10490fdd8699b0
 	public void testVeryLargeFiles() throws IllegalArgumentException, FileNotFoundException, IOException{
 		
 		DFS myDFS = new MyDFS(true);
@@ -247,9 +276,12 @@ public class JUnitTests {
 		
 		
 	}
-//
-	@Test
 
+	@Test
+<<<<<<< HEAD
+
+=======
+>>>>>>> c5970d7c115384e85a385706cb10490fdd8699b0
 	public void testFormat() throws IllegalArgumentException, FileNotFoundException, IOException{
 		DFS myDFS = new MyDFS(true);
 		assertTrue(myDFS.listAllDFiles().size()==0);
@@ -271,7 +303,7 @@ public class JUnitTests {
 	public void testSpaceIsRecycled() throws IllegalArgumentException, FileNotFoundException, IOException{
 		DFS myDFS = new MyDFS(true);
 		DFileID[] dfileIDs = new DFileID[Constants.MAX_NUM_FILES];
-		int blocksPerFile = Constants.NUM_OF_BLOCKS/Constants.MAX_NUM_FILES;
+		int blocksPerFile = (Constants.NUM_OF_BLOCKS-Constants.BLOCK_OFFSET)/Constants.MAX_NUM_FILES;
 		int bytesPerFile = blocksPerFile*Constants.BLOCK_SIZE;
 		//write them all
 		for(int i = 0;i<dfileIDs.length;i++){
@@ -302,11 +334,5 @@ public class JUnitTests {
 	}
 	
 
-	/*
-	 * I will use System.currentTimeinMilis to check most recently written data.
-	 */
-//	@Test
-//	public void testReadReturnsMostRecentlyWrittenData(){
-//		
-//	}
+
 }

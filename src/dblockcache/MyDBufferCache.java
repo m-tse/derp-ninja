@@ -7,7 +7,9 @@ import common.Constants;
 
 public class MyDBufferCache extends DBufferCache {
 
-	private RestrictedDBufferQueue<MyDBuffer> bufferQueue; // Custom class: queue of restricted size
+
+	
+	private RestrictedQueue<MyDBuffer> bufferQueue; // Custom class: queue of restricted size
 	private boolean allBuffersBusy;
 	private static final int NUMRESERVED_BUFFERS = 8;
 
@@ -22,7 +24,8 @@ public class MyDBufferCache extends DBufferCache {
 
 	private MyDBufferCache(int cacheSize) { // cacheSize = number of blocks 
 		super(cacheSize);
-		bufferQueue = new RestrictedDBufferQueue<MyDBuffer>(cacheSize);
+
+		bufferQueue = new RestrictedQueue<MyDBuffer>(cacheSize);
 		// Need to 'pin' buffers that we will always need: iNode and freeMap buffers
 		for (int i = 0; i < NUMRESERVED_BUFFERS; ++i) {
 			MyDBuffer iNodeBuffer = new MyDBuffer(true);
