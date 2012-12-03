@@ -77,22 +77,34 @@ public class JUnitTests {
 	
 	@Test
 	public void testOffset() throws FileNotFoundException, IOException{
-		DFS myDFS = new MyDFS(false);
+		//first test read offset
+		DFS myDFS = new MyDFS(true);
 		String testString = "1234567890";
 		byte[] writeFromBuffer = testString.getBytes();
 //		int bytesPerChar = writeFromBuffer.length/testString.length();
-		int offset = 5;
+		int readOffset = 5;
 		DFileID dfid = myDFS.createDFile();
 		myDFS.write(dfid, writeFromBuffer, 0, writeFromBuffer.length);
 		byte[] readToBuffer = new byte[writeFromBuffer.length];
-		myDFS.read(dfid, readToBuffer, 4, readToBuffer.length-3);
+		myDFS.read(dfid, readToBuffer, readOffset, readToBuffer.length);
 		
-		String readToString = new String(readToBuffer);
-		String writeFromBufferString = new String(writeFromBuffer);
-		System.out.println(readToString);
+//		String readToString = new String(readToBuffer);
+//		String writeFromBufferString = new String(writeFromBuffer);
+//		System.out.println(readToString);
 //		System.out.println(writeFromBufferString);
-		for(int i = 0;i<readToBuffer.length-offset;i++){
-			assertTrue(readToBuffer[i]==writeFromBuffer[i+offset]);
+		for(int i = 0;i<readToBuffer.length-readOffset;i++){
+			assertTrue(readToBuffer[i]==writeFromBuffer[i+readOffset]);
+		}
+		
+		
+		//test write offset
+		DFileID dfid2 = myDFS.createDFile();
+		int writeOffset = 3;
+		myDFS.write(dfid2, writeFromBuffer, writeOffset, writeFromBuffer.length-writeOffset);
+		byte[] readToBuffer2 = new byte[writeFromBuffer.length-writeOffset];
+		myDFS.read(dfid2, readToBuffer2, writeOffset, writeFromBuffer.length-writeOffset);
+		for(int i = 0;i<readToBuffer2.length;i++){
+			assertTrue(readToBuffer2[i]==writeFromBuffer[i+writeOffset]);
 		}
 	}
 	@Test

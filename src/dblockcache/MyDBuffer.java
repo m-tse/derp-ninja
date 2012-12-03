@@ -127,8 +127,8 @@ public class MyDBuffer extends DBuffer {
 	public int read(byte[] buffer, int startOffset, int count) {
 		if (cannotRead()) return -1;
 		int bytesRead = 0;
-		for (int i = startOffset; i < count; ++i, ++bytesRead) {
-			buffer[i] = myBuffer[i-startOffset];
+		for (int i = 0; i < count; ++i, ++bytesRead) {
+			buffer[i] = myBuffer[i+startOffset];
 		}
 		return bytesRead;
 	}
