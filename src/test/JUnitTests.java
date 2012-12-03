@@ -156,19 +156,24 @@ public class JUnitTests {
 		
 	}
 	
-	@Test
-	public void testSpaceIsRecycled() throws IllegalArgumentException, FileNotFoundException, IOException{
-		DFS myDFS = new MyDFS(true);
-		DFileID[] dfileIDs = new DFileID[Constants.MAX_NUM_FILES];
-		//write them all
-		for(int i = 0;i<dfileIDs.length;i++){
-			dfileIDs[i]=myDFS.createDFile();
-			String writeString = "Hello DFS!"+ Integer.toString(i);
-			byte[] toWriteBuffer = writeString.getBytes();
-			myDFS.write(dfileIDs[i], toWriteBuffer, 0, toWriteBuffer.length);
-		}
-		//unfinished
-	}
+	/*
+	 * Create files that take up the entire VDF space, then delete them all, then add them all again.
+	 * Space must be recycled properly for this to work.
+	 */
+//	@Test
+//	public void testSpaceIsRecycled() throws IllegalArgumentException, FileNotFoundException, IOException{
+//		DFS myDFS = new MyDFS(true);
+//		DFileID[] dfileIDs = new DFileID[Constants.MAX_NUM_FILES];
+//		//write them all
+//		for(int i = 0;i<dfileIDs.length;i++){
+//			dfileIDs[i]=myDFS.createDFile();
+//			String writeString = "Hello DFS!"+ Integer.toString(i);
+//			byte[] toWriteBuffer = writeString.getBytes();
+//			myDFS.write(dfileIDs[i], toWriteBuffer, 0, toWriteBuffer.length);
+//		}
+//		
+//		//unfinished
+//	}
 	
 	@Test
 	public void testConcurrentReadingClients(){
@@ -186,8 +191,7 @@ public class JUnitTests {
 		//check that they all finished with no deadlocks
 	}
 	
-	@Test
-	@Ignore 
+	@Test 
 	public void testAsynchronousWritingClients(){
 		DFS myDFS = new MyDFS(true);
 		ArrayList<Integer> completeCounter = new ArrayList<Integer>();
@@ -202,8 +206,7 @@ public class JUnitTests {
 		assertTrue(completeCounter.size()==numWriterThreads);
 	}
 	
-	@Test
-	@Ignore 
+	@Test 
 	public void testAsynchronousReadingAndWriting(){
 		DFS myDFS = new MyDFS(true);
 		ArrayList<Integer> completeCounter = new ArrayList<Integer>();
