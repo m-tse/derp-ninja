@@ -32,7 +32,7 @@ public class JUnitTests {
 
 	
 	@Test
-	@Ignore
+
 	public void testBasicWriteThenRead() throws FileNotFoundException, IOException{
 		DFS myDFS = new MyDFS(true); //start off by formatting the drive
 		DFileID newDFileID = myDFS.createDFile();
@@ -54,7 +54,7 @@ public class JUnitTests {
 	}
 
 	@Test
-	@Ignore
+
 	public void testCreateAndDelete() throws FileNotFoundException, IOException{
 		DFS myDFS = new MyDFS(true);
 		assertTrue(myDFS.listAllDFiles().size()==0); //after format size should be zero
@@ -79,7 +79,7 @@ public class JUnitTests {
 	}
 	
 	@Test
-	@Ignore
+
 	public void testOffset() throws FileNotFoundException, IOException{
 		//first test read offset
 		DFS myDFS = new MyDFS(true);
@@ -109,7 +109,7 @@ public class JUnitTests {
 		}
 	}
 	@Test
-	@Ignore
+
 	public void testPersistence() throws FileNotFoundException, IOException{
 		DFS dfs1 = new MyDFS(true);
 		assertTrue(dfs1.listAllDFiles().size()==0);
@@ -136,7 +136,7 @@ public class JUnitTests {
 	}
 	
 	@Test
-	@Ignore
+
 	public void testMaxSizeOfDFS() throws FileNotFoundException, IOException{
 		DFS myDFS = new MyDFS(true);
 		DFileID[] dfileIDs = new DFileID[Constants.MAX_NUM_FILES];
@@ -164,7 +164,7 @@ public class JUnitTests {
 
 	
 	@Test
-	@Ignore
+
 	public void testConcurrentReadingClients(){
 		DFS myDFS = new MyDFS(true);
 		ArrayList<Integer> completeCounter = new ArrayList<Integer>();
@@ -182,7 +182,7 @@ public class JUnitTests {
 	
 
 	@Test
-	@Ignore
+
 	public void testAsynchronousWritingClients() throws InterruptedException{
 		DFS myDFS = new MyDFS(true);
 		ArrayList<Integer> completeCounter = new ArrayList<Integer>();
@@ -204,7 +204,7 @@ public class JUnitTests {
 	
 
 	@Test 
-	@Ignore
+
 	public void testAsynchronousReadingAndWriting(){
 		DFS myDFS = new MyDFS(true);
 		ArrayList<Integer> completeCounter = new ArrayList<Integer>();
@@ -228,7 +228,7 @@ public class JUnitTests {
 	 * From the readme, a file will not exceed 50 blocks, each block is 1024 bytes, so we need 50*1024 bytes
 	 */
 	@Test
-	@Ignore
+
 	public void testVeryLargeFiles() throws IllegalArgumentException, FileNotFoundException, IOException{
 		
 		DFS myDFS = new MyDFS(true);
@@ -249,7 +249,7 @@ public class JUnitTests {
 	}
 //
 	@Test
-	@Ignore
+
 	public void testFormat() throws IllegalArgumentException, FileNotFoundException, IOException{
 		DFS myDFS = new MyDFS(true);
 		assertTrue(myDFS.listAllDFiles().size()==0);

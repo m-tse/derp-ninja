@@ -158,6 +158,7 @@ Testing
 ####################################
 
 How did you find the lab?
+It was instructive and a good experience.
 
 ##################################
 # Additional comments
