@@ -11,7 +11,7 @@ import common.Constants.DiskOperationType;
 import dblockcache.DBuffer;
 
 public class MyVirtualDisk extends VirtualDisk implements Runnable {
-	
+
 	/*
 	 * Singleton methods
 	 */
@@ -19,8 +19,8 @@ public class MyVirtualDisk extends VirtualDisk implements Runnable {
 	private static Thread myThread;
 	private static boolean isRunning, isComplete;
 	private static Object doneSignal;
-	
-	public static MyVirtualDisk getInstance() {
+
+	public synchronized static MyVirtualDisk getInstance() {
 		if (myInstance == null) {
 			try {
 				myInstance = new MyVirtualDisk();
@@ -30,7 +30,7 @@ public class MyVirtualDisk extends VirtualDisk implements Runnable {
 		}
 		return myInstance;
 	}
-	
+
 	public static boolean format() {
 		try {
 			if (myInstance == null) {
@@ -43,7 +43,7 @@ public class MyVirtualDisk extends VirtualDisk implements Runnable {
 			return false;
 		}
 	}
-	
+
 	private static void stopRunning() {
 		isRunning = false;
 		while(!isComplete) {
@@ -56,16 +56,16 @@ public class MyVirtualDisk extends VirtualDisk implements Runnable {
 			}
 		}
 	}
-	
-	
-	
+
+
+
 	/*
 	 * MyVirtualDisk Constructors
 	 */
-	private Queue<Request> requestQueue;
-	
+	private LinkedList<Request> requestQueue;
+
 	private MyVirtualDisk(String volName, boolean format) throws FileNotFoundException,
-			IOException {
+	IOException {
 		super(volName, format);
 		requestQueue = new LinkedList<Request>();
 		isRunning = true;
@@ -74,23 +74,42 @@ public class MyVirtualDisk extends VirtualDisk implements Runnable {
 		myThread = new Thread(this);
 		myThread.setDaemon(true);
 		myThread.start();
-		
+
 	}
-	
+
 	private MyVirtualDisk(boolean format) throws FileNotFoundException,
 	IOException {
 		this(Constants.vdiskName, format);
 	}
-	
+
 	private MyVirtualDisk() throws FileNotFoundException, IOException {
 		this(Constants.vdiskName, false);
 	}
-	
+
 	@Override
 	public void startRequest(DBuffer buf, DiskOperationType operation) {
 		Request nextRequest = new Request(buf, operation);
 		synchronized(this) {
-			requestQueue.add(nextRequest);
+			
+			boolean insertedWrite=false;
+			//make sure that writes get prioritized over reads for the same data
+			if(operation==DiskOperationType.WRITE)
+			{
+				int index=0;
+				for(Request r:requestQueue)
+				{
+					if(r.getBuffer().getBlockID()==buf.getBlockID() && r.isRead())
+					{
+						requestQueue.add(index, nextRequest);
+						insertedWrite=true;
+						break;
+					}
+					index++;
+				}
+			}
+			if(!insertedWrite)
+				requestQueue.add(nextRequest);
+
 			this.notify();
 		}
 	}
@@ -98,15 +117,17 @@ public class MyVirtualDisk extends VirtualDisk implements Runnable {
 	@Override
 	public void run() {
 		while (isRunning) {
-			while (requestQueue.isEmpty()) {
-				try {
-					synchronized(this) {
+			synchronized(this) {
+				while (requestQueue.isEmpty()) {
+					try {
 						this.wait();
 					}
-				} catch (InterruptedException e) {
-					e.printStackTrace();
+					catch (InterruptedException e) {
+						e.printStackTrace();
+					}
 				}
 			}
+
 			while (!requestQueue.isEmpty()) {
 				Request nextRequest;
 				synchronized(this) {
@@ -136,5 +157,4 @@ public class MyVirtualDisk extends VirtualDisk implements Runnable {
 		}
 	}
 }
-	
-	
+
