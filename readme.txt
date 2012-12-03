@@ -82,9 +82,10 @@ Upper Layer: DFS
 
     INode.java
 	Abstraction that connects a File(represented by DFILEID) with the associated blocks that are used for that file's storage.  The first few bytes of the INode store information, bytes 0-3 for fileID, and bytes 4-7 for fileSize.  The rest of the bytes are used for the blocks.
-////add more
+	
+	DFileID fileID; //DFile that this iNode is associated with
 
-    
+    	INode next; //linked list implementation, chaining INodes one after the other to deal with large files
 
 /////////////////
 Middle Layer:
