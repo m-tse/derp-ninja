@@ -156,24 +156,6 @@ public class JUnitTests {
 		
 	}
 	
-	/*
-	 * Create files that take up the entire VDF space, then delete them all, then add them all again.
-	 * Space must be recycled properly for this to work.
-	 */
-//	@Test
-//	public void testSpaceIsRecycled() throws IllegalArgumentException, FileNotFoundException, IOException{
-//		DFS myDFS = new MyDFS(true);
-//		DFileID[] dfileIDs = new DFileID[Constants.MAX_NUM_FILES];
-//		//write them all
-//		for(int i = 0;i<dfileIDs.length;i++){
-//			dfileIDs[i]=myDFS.createDFile();
-//			String writeString = "Hello DFS!"+ Integer.toString(i);
-//			byte[] toWriteBuffer = writeString.getBytes();
-//			myDFS.write(dfileIDs[i], toWriteBuffer, 0, toWriteBuffer.length);
-//		}
-//		
-//		//unfinished
-//	}
 	
 	@Test
 	public void testConcurrentReadingClients(){
@@ -262,7 +244,45 @@ public class JUnitTests {
 		System.out.println("after second format");
 		assertTrue(newDFS.listAllDFiles().size()==0);
 	}
+	
+	/*
+	 * Create files that take up the entire VDF space, then delete them all, then add them all again.
+	 * Space must be recycled properly for this to work.
+	 */
+	@Test
+	public void testSpaceIsRecycled() throws IllegalArgumentException, FileNotFoundException, IOException{
+		DFS myDFS = new MyDFS(true);
+		DFileID[] dfileIDs = new DFileID[Constants.MAX_NUM_FILES];
+		int blocksPerFile = Constants.NUM_OF_BLOCKS/Constants.MAX_NUM_FILES;
+		int bytesPerFile = blocksPerFile*Constants.BLOCK_SIZE;
+		//write them all
+		for(int i = 0;i<dfileIDs.length;i++){
+			dfileIDs[i]=myDFS.createDFile();
+			
+			byte[] toWriteBuffer = new byte[bytesPerFile];
+			for(int j = 0;j<toWriteBuffer.length;j++) toWriteBuffer[j]='1';
+			myDFS.write(dfileIDs[i], toWriteBuffer, 0, toWriteBuffer.length);
+			assertTrue(myDFS.sizeDFile(dfileIDs[i])==bytesPerFile);
+		}
+		assertTrue(myDFS.listAllDFiles().size()==Constants.MAX_NUM_FILES);
+		//delete them all
+		for(int i = 0;i<dfileIDs.length;i++){
+			myDFS.destroyDFile(dfileIDs[i]);
+		}
+		assertTrue(myDFS.listAllDFiles().size()==0);
+		//now create them all again
+		for(int i = 0;i<dfileIDs.length;i++){
+			dfileIDs[i]=myDFS.createDFile();
+			
+			byte[] toWriteBuffer = new byte[bytesPerFile];
+			for(int j = 0;j<toWriteBuffer.length;j++) toWriteBuffer[j]='1';
+			myDFS.write(dfileIDs[i], toWriteBuffer, 0, toWriteBuffer.length);
+			assertTrue(myDFS.sizeDFile(dfileIDs[i])==bytesPerFile);
 
+		}
+		assertTrue(myDFS.listAllDFiles().size()==Constants.MAX_NUM_FILES);
+	}
+	
 
 	/*
 	 * I will use System.currentTimeinMilis to check most recently written data.

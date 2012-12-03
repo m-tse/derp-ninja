@@ -146,6 +146,7 @@ Testing
 	testAsynchronousReadingAndWriting() //create multiple reader and writer threads, check that they all finish without deadlocks
 	testVeryLargeFiles() //create a very large file, up to the max file size, and check that it works correctly
 	testFormat() //check that passing in format=true will actually format the underlying disk correctly
+	testSpaceIsRecycled() //writes files such that their size fills up the entire VDF, then deletes them all.  Then rewrites all of them again, check that the size of the written files matches the intended size(i.e. write didn't fail prematurely due to not enough space).  If space is recycled correctly, this should work.  
 
     WriterClient.java
 	thread class that writes a certain number of files to the DFS, then ends and signals to the tester that it completed
