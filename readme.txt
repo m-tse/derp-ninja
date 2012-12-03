@@ -160,7 +160,9 @@ Testing
 	testCreateAndDelete() //create a DFile, delete it, check that DFS is clean of it
 	testOffset() //write using an offset integer, and read using an offset
 
-	testPersistence() //test that the VDF contents persist.  Instantiate a DFS, write something, instantiate another DFS and look for that previously written file
+	setUpTestPersistence() //pretest to run before testPersistence.  Run this which will write a file to the disk
+
+	testPersistence() //test that the VDF contents persist.  Run this after setUpTestPersistence().  It should correctly read, and pull the file that was written in setUpTestPersistence()
 
 	testMaxSizeOfDFS() //write up to the max number of files in the DFS
 
@@ -188,7 +190,6 @@ Testing
 ####################################
 
 How did you find the lab?
-It was instructive and a good experience.
 
 ##################################
 # Additional comments
