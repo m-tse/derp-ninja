@@ -4,17 +4,18 @@ import java.nio.ByteBuffer;
 import java.util.Arrays;
 
 import dblockcache.DBuffer;
+import dblockcache.MyDBufferCache;
 
 public class INode {
 
 	// For now, having INodes created at fixed constant size
-	private int[] _blocks;  
-	private int _fileSize;
-	private DFileID _fileID;
+	private int[] blocks;  
+	private int fileSize;
+	private DFileID fileID;
 	private INode next;
 	
 	// Pointer to last available position on disk
-	private static int endOffset = Constants.INODE_REGION_SIZE_BYTES-Constants.INODE_SIZE; 
+	private static int endOffset = Constants.INODE_REGION_SIZE_BYTES; 
 	
 	// INode byte format
 	/*
@@ -33,32 +34,52 @@ public class INode {
 			fileIdBytes[i] = iNodeBytes[i];
 		}
 		bb = ByteBuffer.wrap(fileIdBytes);
-		_fileID = new DFileID(bb.getInt());
+		fileID = new DFileID(bb.getInt());
 
 		// Retrieve file size
 		for (int i = 4 ; i < 8; ++i) {
 			fileSizeBytes[i-4] = iNodeBytes[i];
 		}
 		bb = ByteBuffer.wrap(fileSizeBytes);
-		_fileSize = bb.getInt();
+		fileSize = bb.getInt();
 
 		// Retrieve blocks
-		_blocks = new int[Constants.MAX_FILE_BLOCK_SIZE];
+		blocks = new int[Constants.MAX_FILE_BLOCK_SIZE];
 		int index = 0;
 		byte[] blockBytes = new byte[4];
 		for (int i = 8 ; i < iNodeBytes.length; ++i) {
-			if (i == iNodeBytes.length-1) {
-				//
-			}
+//			if (i == iNodeBytes.length-1) {
+//				if (i != 0) {
+//					this.next = createNestedNode(i);
+//				} else this.next = null;
+//			}
 			blockBytes[i%4] = iNodeBytes[i];
 			if ((i+1) % 4 == 0) {
 				bb = ByteBuffer.wrap(blockBytes);
 				int blockNum = bb.getInt(); 
-				_blocks[index] = blockNum; 
+				blocks[index] = blockNum; 
 				index++;
 				blockBytes = new byte[4];
 			}
 		}
+	}
+	
+	public INode createNestedNode(int offset) {
+		int blockNum = offset/Constants.BLOCK_SIZE;
+		int blockOffset = offset-(blockNum*Constants.BLOCK_SIZE);
+		MyDBufferCache cache = MyDBufferCache.getInstance();
+		DBuffer dbuf = cache.getBlock(blockNum+1);
+		byte[] blockBytes = new byte[Constants.BLOCK_SIZE];
+		if (!dbuf.checkValid()) {
+			dbuf.startFetch();
+			dbuf.waitValid();
+		}
+		dbuf.read(blockBytes, blockOffset, Constants.INODE_SIZE);
+		byte[] iNodeBytes = new byte[Constants.INODE_SIZE];
+		for (int i = 0; i < iNodeBytes.length; ++i) {
+			iNodeBytes[i] = blockBytes[i+blockOffset];
+		}
+		return new INode(iNodeBytes);
 	}
 	
 	public byte[] getBytes() {
@@ -69,7 +90,7 @@ public class INode {
 		
 		// FileID
 		bb = ByteBuffer.allocate(4);
-		bb.putInt(_fileID.getInt());
+		bb.putInt(fileID.getInt());
 		result = bb.array();
 		for (byte b: result) {
 			iNodeBytes[index] = b;
@@ -78,7 +99,7 @@ public class INode {
 		
 		// File size
 		bb = ByteBuffer.allocate(4);
-		bb.putInt(_fileSize);
+		bb.putInt(fileSize);
 		result = bb.array();
 		for (byte b: result) {
 			iNodeBytes[index] = b;
@@ -86,7 +107,7 @@ public class INode {
 		}		
 		
 		// Blocks 
-		for (int i: _blocks) {
+		for (int i: blocks) {
 			bb = ByteBuffer.allocate(4);
 			bb.putInt(i);
 			result = bb.array();
@@ -96,64 +117,75 @@ public class INode {
 			}
 		}
 				
-		System.out.println("getBytes() in INode.java: " + _fileID.getInt());
+		System.out.println("getBytes() in INode.java: " + fileID.getInt());
 		return iNodeBytes;
 	}
 	
 	public INode(DFileID fileID) {
-		_blocks = new int[Constants.MAX_FILE_BLOCK_SIZE]; // 62*4 bytes = 248 bytes
-		_fileSize = 0; // 4 bytes
-		_fileID = fileID; // 4 bytes
+		blocks = new int[Constants.MAX_FILE_BLOCK_SIZE]; // 62*4 bytes = 248 bytes
+		fileSize = 0; // 4 bytes
+		this.fileID = fileID; // 4 bytes
+		next = null;
 	}
 	
 	public void increaseFileSize(int amount) {
-		_fileSize += amount;
+		fileSize += amount;
 	}
 	
-	public void decreateFileSize(int amount) {
-		_fileSize -= amount;
+	public void decreaseFileSize(int amount) {
+		fileSize -= amount;
 	}
-	
 	
 	public DFileID getDFileID() {
-		return _fileID;
+		return fileID;
 	}
 	
-	
 	public int getFileSize() {
-		return new Integer(_fileSize);
+		return new Integer(fileSize);
 	}
 	
 	public void setFileSize(int fileSize) {
-		_fileSize = fileSize;
+		this.fileSize = fileSize;
 	}
 	
 	public int[] getBlockArray() {
-		return Arrays.copyOf(_blocks, _blocks.length);
+		return Arrays.copyOf(blocks, blocks.length);
 	}
 	
 	
 	public void setBlockArray(int[] blocks) {
-		_blocks = blocks;
+		this.blocks = blocks;
 	}
 	
+	
 	public void addBlock(int newBlock) {
-		for (int i = 0; i < _blocks.length; ++i) {
-			if (i == _blocks.length-1) continue; // Reserve last block for inode pointer - large files
-			if (_blocks[i] == 0) {
-				_blocks[i] = newBlock;
+		for (int i = 0; i < blocks.length; ++i) {
+//			if (i == blocks.length-1) break; // Reserve last block for inode pointer - large files
+			if (blocks[i] == 0) {
+				blocks[i] = newBlock;
 				return;
 			}
 		}
 		// Code for larger files - use recursion?
-		INode next = new INode(this.getDFileID());
-		System.err.println("Could not add block to inode, no more space");
+//		if (next == null) {
+//			next = new INode(this.getDFileID());
+//			endOffset -= Constants.INODE_SIZE;
+//			while (!createNestedNode(endOffset).isNotUsed()) {
+//				endOffset -= Constants.INODE_SIZE;
+//				if (endOffset <= 0) {
+//					System.err.println("Cannot create anymore nodes");
+//					return;
+//				}
+//			}
+//			blocks[blocks.length-1] = endOffset;
+//		} 
+//		next.addBlock(newBlock);
 	}
 	
 	public void removeBlock(int oldBlock) {
-		for (int i = 0; i < _blocks.length; ++i) {
-			if (_blocks[i] == oldBlock) {
-				_blocks[i] = 0;
+		for (int i = 0; i < blocks.length; ++i) {
+			if (blocks[i] == oldBlock) {
+				blocks[i] = 0;
 				return;
 			}
 		}
@@ -163,7 +195,7 @@ public class INode {
 	public void writeToBuffer(DBuffer dbuf) {
 		byte[] iNodeBytes = this.getBytes();
 		byte[] bufferBytes = dbuf.getBuffer();
-		int iNodeOffset = Constants.INODE_SIZE * (_fileID.getInt() % Constants.INODES_PER_BLOCK);
+		int iNodeOffset = Constants.INODE_SIZE * (fileID.getInt() % Constants.INODES_PER_BLOCK);
 		for (int i = 0; i < iNodeBytes.length; ++i) {
 			bufferBytes[i+iNodeOffset] = iNodeBytes[i];
 		}
@@ -179,13 +211,13 @@ public class INode {
 	}
 
 	public void clearINode() {
-		Arrays.fill(_blocks, 0);
-		_fileID.clearFileID();
-		_fileSize = 0;
+		Arrays.fill(blocks, 0);
+		fileID.clearFileID();
+		fileSize = 0;
 	}
 	
 	public boolean isNotUsed() {
-		for (int i: _blocks) {
+		for (int i: blocks) {
 			if (i != 0) {
 				return false;
 			}
