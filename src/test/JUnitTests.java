@@ -7,6 +7,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.junit.Ignore;
 import org.junit.Test;
 
 import common.Constants;
@@ -172,6 +173,7 @@ public class JUnitTests {
 	}
 	
 	@Test
+	@Ignore 
 	public void testAsynchronousWritingClients(){
 		DFS myDFS = new MyDFS(true);
 		ArrayList<Integer> completeCounter = new ArrayList<Integer>();
@@ -187,6 +189,7 @@ public class JUnitTests {
 	}
 	
 	@Test
+	@Ignore 
 	public void testAsynchronousReadingAndWriting(){
 		DFS myDFS = new MyDFS(true);
 		ArrayList<Integer> completeCounter = new ArrayList<Integer>();

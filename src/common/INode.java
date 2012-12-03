@@ -11,6 +11,10 @@ public class INode {
 	private int[] _blocks;  
 	private int _fileSize;
 	private DFileID _fileID;
+	private INode next;
+	
+	// Pointer to last available position on disk
+	private static int endOffset = Constants.INODE_REGION_SIZE_BYTES-Constants.INODE_SIZE; 
 	
 	// INode byte format
 	/*
@@ -132,11 +136,15 @@ public class INode {
 	
 	public void addBlock(int newBlock) {
 		for (int i = 0; i < _blocks.length; ++i) {
+			if (i == _blocks.length-1) continue; // Reserve last block for inode pointer - large files
 			if (_blocks[i] == 0) {
 				_blocks[i] = newBlock;
 				return;
 			}
 		}
+		// Code for larger files - use recursion?
+		INode next = new INode(this.getDFileID());
+		_blocks[_blocks.length-1] = next;
 		System.err.println("Could not add block to inode, no more space");
 	}
 	
@@ -173,7 +181,6 @@ public class INode {
 		_fileID.clearFileID();
 		_fileSize = 0;
 	}
-	
 	
 	public boolean isNotUsed() {
 		for (int i: _blocks) {
