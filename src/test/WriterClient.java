@@ -28,6 +28,7 @@ public class WriterClient implements Runnable {
 			String writeString = "WriterClient:"+Integer.toString(myID)+" "+Integer.toString(i);
 			byte[] buffer = writeString.getBytes();
 			DFileID dfid = myDFS.createDFile();
+			System.out.println("current file ID is: "+dfid.getInt());
 			try {
 				myDFS.write(dfid, buffer, 0, buffer.length);
 			} catch (IllegalArgumentException e) {
@@ -55,6 +56,7 @@ public class WriterClient implements Runnable {
 				e.printStackTrace();
 			}
 			if(!new String(readToBuffer).equals(new String(buffer))){
+				System.err.println("Write failed for index:" + i);
 				break;
 			}
 		}
