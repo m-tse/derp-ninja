@@ -132,7 +132,8 @@ public class INode {
 	}
 	
 	public int getFileSize() {
-		return new Integer(fileSize);
+		if(nextINode==null) return new Integer(fileSize);
+		return nextINode.getFileSize()+new Integer(fileSize);
 	}
 	
 	public void setFileSize(int fileSize) {
@@ -148,44 +149,8 @@ public class INode {
 		this.blockIDs = blocks;
 	}
 	
-	
-	public void addBlock(int newBlock) {
-		for (int i = 0; i < blockIDs.length; ++i) {
-			if (i == blockIDs.length-1){
-//				createIndirectBlock(newBlock); // Reserve last block for inode pointer - large files
-				break;
-			}
-			if (blockIDs[i] == 0) {
-				blockIDs[i] = newBlock;
-				return;
-			}
-		}
-		// Code for larger files - use recursion?
-//		if (next == null) {
-//			next = new INode(this.getDFileID());
-//			endOffset -= Constants.INODE_SIZE;
-//			while (!createNestedNode(endOffset).isNotUsed()) {
-//				endOffset -= Constants.INODE_SIZE;
-//				if (endOffset <= 0) {
-//					System.err.println("Cannot create anymore nodes");
-//					return;
-//				}
-//			}
-//			blocks[blocks.length-1] = endOffset;
-//		} 
-//		next.addBlock(newBlock);
-	}
 
-	
-	public void removeBlock(int oldBlock) {
-		for (int i = 0; i < blockIDs.length; ++i) {
-			if (blockIDs[i] == oldBlock) {
-				blockIDs[i] = 0;
-				return;
-			}
-		}
-		System.err.println("Could not find block in inode");
-	}
+
 
 	public INode getCreateNextINode(){
 		if(nextINode==null){

@@ -70,15 +70,6 @@ public class MyDBufferCache extends DBufferCache {
 		return null;
 	}
 
-	/*
-	public MyDBuffer getAvailableBuffer() {
-		for (MyDBuffer dbuf: bufferQueue) {
-			if (dbuf.getBlockID() == 0) {
-				return dbuf;
-			}
-		}
-		return null;
-	}*/
 
 	@Override
 	public DBuffer getBlock(int blockID){
@@ -143,34 +134,7 @@ public class MyDBufferCache extends DBufferCache {
 			return retrieved;
 
 
-			/* Andrews old code, sighhhhhh
-			// See if block in buffer
-			MyDBuffer retrieved;
-			if ((retrieved = checkInCache(blockID)) != null) 
-			{
-				retrieved.holdBuffer();
-				return retrieved; 
-			}
-			// else
-			if ((retrieved = getAvailableBuffer()) != null) { 
-				retrieved.setBlockID(blockID);
-				retrieved.holdBuffer();
-				return retrieved;
-			} 
-			// else need to EVICT 
-			MyDBuffer evictee = bufferQueue.poll();
-			if (evictee.isBusy() || evictee.isPinned()) { 
-				// If first i.e. most unpopular buffer is busy then all are busy
-				// Wait for one to free up ?
-				// For now just wait for evictee
-				allBuffersBusy = true;
-				waitOnBuffers();
-			} 
-			evictee.clearBuffer();
-			evictee.setBlockID(blockID);
-			evictee.holdBuffer();
-			bufferQueue.add(evictee);
-			return evictee;*/
+
 		}
 	}
 

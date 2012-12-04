@@ -76,17 +76,19 @@ Upper Layer: DFS
 
 	destroyDFile(DFileID dFID) //finds that fildID, destroys the entry in fileIDs array, clears the INode, sets the entry in iNodes array to null
 
-	read(....) //gets the iNode associated with the DFID, logic to get the associated blocks is located in the iNode class.  With those blocks, we get DBuffers from the DBufferCache, and call the read function in those DBuffers
+	read(....) //gets the iNode associated with the DFID, and reads bytes from it.  It will continually increment the INode blockIDArray index until all "count" bytes are read.  When it reaches the end of the current INode's blockIDArray, it will move on to the next INode.
+		   
 
-	write(....) //gets the iNode associated to the DFID, gets the associated blocks through the iNode(logic in iNode class).  Grabs a DBuffer from the BufferCache using the blockID, calls the write function from that DBuffer
+	write(....) //written almost the same as read, but with a write function instead.  And when it finishes using up an iNode, it will create a new INode to link onto it, instead of just getting the next one.
 
     INode.java
-	Abstraction that connects a File(represented by DFILEID) with the associated blocks that are used for that file's storage.  The first few bytes of the INode store information, bytes 0-3 for fileID, and bytes 4-7 for fileSize.  The rest of the bytes are used for the blocks.
+	Abstraction that connects a File(represented by DFILEID) with the associated blocks that are used for that file's storage.  The first few bytes of the INode store information, bytes 0-3 for fileID, and bytes 4-7 for fileSize.  The rest of the bytes are used for the blocks.  There are three constructors for this iNode, two of them, with parameters, are for "head" inodes, when the iNode represents the head iNode for a DFile.  The empty constructor is for later in the linked list INodes, which do not have DFileIDS
 	
 	DFileID fileID; //DFile that this iNode is associated with
 
     	INode next; //linked list implementation, chaining INodes one after the other to deal with large files
 
+	int fileSize; //filesize of this file.  It will traverse the linked list of iNodes and recursively add their sizes to get the fileSize
 /////////////////
 Middle Layer:
 ///////////////

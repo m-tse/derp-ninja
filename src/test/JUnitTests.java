@@ -203,7 +203,7 @@ public class JUnitTests {
 
 		Thread.sleep(5000);
 
-		System.out.println("SKEET SKEET SKEET MOTHAFUCKA");
+
 		System.out.println(completeCounter.size()+" threads have finished out of "+numWriterThreads);
 		assertTrue(completeCounter.size()==numWriterThreads);
 	}
@@ -236,12 +236,11 @@ public class JUnitTests {
 	public void testVeryLargeFiles() throws IllegalArgumentException, FileNotFoundException, IOException{
 		
 		myDFS.format();
-		int twoExponent = 15;
+		int twoExponent = 16;
 		byte[] bigByteArray = new byte[(int) Math.pow(2, twoExponent)];
 		for(int i = 0;i<bigByteArray.length;i++){
-//			bigByteArray[i]=(byte) ('0'+(i%10));
-			bigByteArray[i]='1';
-		}
+			bigByteArray[i]=(byte) ('0'+(i%10));
+			}
 		DFileID dfid = myDFS.createDFile();
 		myDFS.write(dfid, bigByteArray, 0, bigByteArray.length);
 		byte[] readToArray = new byte[bigByteArray.length];
