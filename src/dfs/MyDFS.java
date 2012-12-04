@@ -63,7 +63,7 @@ public class MyDFS extends DFS {
 				dbuf.startFetch();
 				dbuf.waitValid();
 			}
-			System.out.println("MyDFS.readRegion() GETTING BLOCK " + (i+1));
+//			System.out.println("MyDFS.readRegion() GETTING BLOCK " + (i+1));
 			if (!dbuf.checkValid()) {
 				dbuf.startFetch();
 				dbuf.waitValid();
@@ -73,11 +73,11 @@ public class MyDFS extends DFS {
 				INode iNode = new INode(Arrays.copyOfRange(
 						bufferBytes, k*Constants.INODE_SIZE, (k+1)*Constants.INODE_SIZE));
 				if (iNode.isNotUsed()) {
-					System.out.println("MyDFS.readINodeRegion(): NOOOO");
+//					System.out.println("MyDFS.readINodeRegion(): NOOOO");
 					continue;
 				} else {
-					System.out.println("MyDFS.readINodeRegion(): YESSS");
-					System.out.println("- Got iNode for fileID: " + fileID);
+//					System.out.println("MyDFS.readINodeRegion(): YESSS");
+//					System.out.println("- Got iNode for fileID: " + fileID);
 					// Convert bytes into iNode information
 					iNodes[fileID] = iNode;
 					fileIDs[fileID] = new DFileID(fileID);
@@ -126,7 +126,7 @@ public class MyDFS extends DFS {
 					dbuf.startFetch();
 					dbuf.waitValid();
 				}
-				iNode.writeToBuffer(dbuf);
+//				writeToBuffer(iNode, dbuf);
 				return fileIDs[i];
 			}
 		}
@@ -142,7 +142,7 @@ public class MyDFS extends DFS {
 				INode iNode = iNodes[i];
 				iNode.clearINode();
 				DBuffer dbuf = bufferCache.getBlock(i % Constants.INODES_PER_BLOCK);
-				iNode.writeToBuffer(dbuf);
+				writeToBuffer(iNode, dbuf);
 				iNodes[i]=null;
 			}
 		}
@@ -160,79 +160,119 @@ public class MyDFS extends DFS {
 	
 	@Override
 	public int read(DFileID dFID, byte[] buffer, int startOffset, int count) {
+		
 		int totalBytesRead = 0;
-		// REFACTOR HERE
-		INode iNode = iNodes[dFID.getInt()];
-		if (iNode == null) {
+		int currentIndex = startOffset;
+		INode currentINode = iNodes[dFID.getInt()];
+		if (currentINode == null) {
 			System.out.println("MyDFS.read(): FILE DOES NOT EXIST");
-		} else {
-			int[] blocks = iNode.getBlockArray();
-			System.out.println(Arrays.toString(blocks));
-			for (int i = 0; i < blocks.length; ++i) {
-				System.out.println("MyDFS.read() block: " + blocks[i]);
-				if (blocks[i] == 0) continue; 
-				DBuffer dbuf = bufferCache.getBlock(blocks[i]);
-				if (!dbuf.checkValid()) {
-					dbuf.startFetch();
-					dbuf.waitValid();
+			return 0;
+		}
+		int iNodeBlockIndex=0;
+		
+		while(count>0){
+			System.out.println("block index just increasd while reading");
+			if(iNodeBlockIndex==currentINode.blockIDs.length){ //at the very last block of this iNode, go to a new iNode, and reset the indexes
+				System.out.println("READING FROM LINKED INODE");
+				currentINode=currentINode.getNextINode();
+				if(currentINode==null){
+					System.err.println("BADLY WRITTEN FILE, CANNOT READ");
+					return totalBytesRead;
 				}
-				int bytesRead = dbuf.read(buffer, startOffset, count);
-				totalBytesRead += bytesRead;
-				bufferCache.releaseBlock(dbuf);
-				System.out.println(bytesRead);
-				if (count == totalBytesRead) break;  
+				iNodeBlockIndex=0;
 			}
+
+
+
+			int bytesToBeRead = count;
+			if (bytesToBeRead > Constants.MAX_FILE_BLOCK_SIZE)  bytesToBeRead = Constants.MAX_FILE_BLOCK_SIZE;
+
+			DBuffer dbuf = bufferCache
+					.getBlock(currentINode.blockIDs[iNodeBlockIndex]);
+			if (!dbuf.checkValid()) {
+				dbuf.startFetch();
+				dbuf.waitValid();
+			}
+			int bytesRead = dbuf.read(buffer, currentIndex, bytesToBeRead);
+			if (bytesRead == -1)
+				System.err.println("MyDFS.read() READ FAILED");
+			currentIndex+=bytesRead;
+			iNodeBlockIndex++;
+			count-=bytesRead;
+			totalBytesRead += bytesRead;
+			bufferCache.releaseBlock(dbuf);
+//			System.out.println("MyDFS.write() PUSHED: " + dbuf.getBlockID());
+
+		
 		}
 		System.out.println(new String(buffer));
-		System.out.println("MyDFS.read(): " + totalBytesRead);
+//		System.out.println("MyDFS.read(): " + totalBytesRead);
 		return totalBytesRead;
-	}
+		}
+
+
 
 	@Override
-	public int write(DFileID dfid, byte[] buffer, int startOffset, int count) { 
+	public int write(DFileID dfid, byte[] buffer, int startOffset, int count) {
 		int totalBytesWritten = 0;
-		int fileID = dfid.getInt();
-		INode iNode = iNodes[dfid.getInt()];
-		if (iNode == null) {
+
+		int currentIndex = startOffset;
+		INode currentINode = iNodes[dfid.getInt()];
+		int iNodeBlockIndex = 0;
+
+		if (currentINode == null) {
 			System.out.println("MyDFS.write() FILE DOES NOT EXIST");
-		} else {
-			int[] blocks = iNode.getBlockArray();
-			int startBlock = startOffset / Constants.BLOCK_SIZE;
-			startOffset = startOffset % Constants.BLOCK_SIZE;
-			for (int i = startBlock; i < blocks.length; ++i) {
-				if (blocks[i] == 0) {
-					blocks[i] = this.getNextFreeBlock();
-					iNode.addBlock(blocks[i]);
-					if (blocks[i] == 0) System.out.println("MyDFS.write() NO MORE BLOCKS AVAILABLE");
-					else {
-						DBuffer dbuf = bufferCache.getBlock(fileID/Constants.INODES_PER_BLOCK + 1);
-						if (!dbuf.checkValid()) {
-							dbuf.startFetch();
-							dbuf.waitValid();
-						}
-						iNode.writeToBuffer(dbuf);
-					}
-				}
-				DBuffer dbuf = bufferCache.getBlock(blocks[i]);
-				int bytesWritten = dbuf.write(buffer, startOffset, count);
-				if (bytesWritten == -1) System.err.println("MyDFS.write() WRITE FAILED");
-				totalBytesWritten += bytesWritten;
-				iNode.increaseFileSize(bytesWritten);
-				iNode.writeToBuffer(bufferCache.getBlock(iNode.getDFileID().getInt()/Constants.INODES_PER_BLOCK + 1));
-				dbuf.startPush();
-				dbuf.waitClean();
-				bufferCache.releaseBlock(dbuf);
-				System.out.println("MyDFS.write() PUSHED: " + dbuf.getBlockID());
-				if (count == bytesWritten) {
-					break;
-				} else {
-					count -= bytesWritten;
-					startOffset = 0;
-				}
-			}
+			return 0;
 		}
-		System.out.println("MyDFS.write() wrote num bytes: " + totalBytesWritten);
-		
+
+		while (count > 0) {
+			System.out.println("blockINDEX just increased while writing");
+			
+			if(iNodeBlockIndex==currentINode.blockIDs.length){ //at the very last block of this iNode, go to a new iNode, and reset the indexes
+				System.out.println("LINKING TO A NEW INODE");
+				currentINode=currentINode.getCreateNextINode();
+				iNodeBlockIndex=0;
+			}
+
+			if (currentINode.blockIDs[iNodeBlockIndex] == 0) { // currentBlock
+																// has no
+																// associated
+																// blockID yet
+				int newFreeBlock = getNextFreeBlock();
+				if (newFreeBlock == 0)
+					System.err
+							.println("MyDFS.write() NO MORE BLOCKS AVAILABLE");
+				currentINode.blockIDs[iNodeBlockIndex] = getNextFreeBlock();
+			}
+
+			int bytesToBeWritten = count;
+			if (bytesToBeWritten > Constants.MAX_FILE_BLOCK_SIZE)
+				bytesToBeWritten = Constants.MAX_FILE_BLOCK_SIZE;
+
+			DBuffer dbuf = bufferCache
+					.getBlock(currentINode.blockIDs[iNodeBlockIndex]);
+
+			int bytesWritten = dbuf.write(buffer, currentIndex, bytesToBeWritten);
+			if (bytesWritten == -1)
+				System.err.println("MyDFS.write() WRITE FAILED");
+			
+			iNodeBlockIndex++;
+			count-=bytesWritten;
+			totalBytesWritten += bytesWritten;
+			currentINode.increaseFileSize(bytesWritten); // note write a new
+															// filesize function
+															// for INode taking
+															// into account
+															// linked list
+			dbuf.startPush();
+			dbuf.waitClean();
+			bufferCache.releaseBlock(dbuf);
+//			System.out.println("MyDFS.write() PUSHED: " + dbuf.getBlockID());
+
+		}
+//		System.out.println("MyDFS.write() wrote num bytes: "
+//				+ totalBytesWritten);
+
 		return totalBytesWritten;
 	}
 
@@ -266,6 +306,25 @@ public class MyDFS extends DFS {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
+	}
+	
+	//INode functions
+	public void writeToBuffer(INode inode, DBuffer dbuf) {
+		byte[] iNodeBytes = inode.getBytes();
+		byte[] bufferBytes = dbuf.getBuffer();
+		int iNodeOffset = Constants.INODE_SIZE * (inode.getDFileID().getInt() % Constants.INODES_PER_BLOCK);
+		for (int i = 0; i < iNodeBytes.length; ++i) {
+			bufferBytes[i+iNodeOffset] = iNodeBytes[i];
+		}
+		try {
+			dbuf.write(bufferBytes, 0, bufferBytes.length);
+			dbuf.startPush();
+			dbuf.waitClean();
+			System.out.println("INode.writeToDisk(): " + iNodeOffset);
+		} catch (IllegalArgumentException e) {
+			e.printStackTrace();
+		}
+
 	}
 	
 }	

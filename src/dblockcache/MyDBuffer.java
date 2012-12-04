@@ -128,7 +128,11 @@ public class MyDBuffer extends DBuffer {
 		if (cannotRead()) return -1;
 		int bytesRead = 0;
 		for (int i = 0; i < count; ++i, ++bytesRead) {
-			buffer[i] = myBuffer[i+startOffset];
+			if(i+startOffset>buffer.length){
+				System.err.println("buffer is too small to read (count) bytes");
+				return bytesRead;
+			}
+			buffer[i+startOffset] = myBuffer[i];
 		}
 		return bytesRead;
 	}

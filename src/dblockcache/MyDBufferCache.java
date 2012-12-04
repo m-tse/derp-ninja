@@ -82,7 +82,7 @@ public class MyDBufferCache extends DBufferCache {
 
 	@Override
 	public DBuffer getBlock(int blockID){
-		System.out.println("entering getBlock");
+//		System.out.println("entering getBlock");
 		synchronized(this)
 		{
 			MyDBuffer retrieved=getFromCache(blockID);
@@ -139,7 +139,7 @@ public class MyDBufferCache extends DBufferCache {
 			retrieved.holdBuffer();
 			//put in the new buffer
 			bufferQueue.add(retrieved);
-			System.out.println("leaving getBlock");
+//			System.out.println("leaving getBlock");
 			return retrieved;
 
 

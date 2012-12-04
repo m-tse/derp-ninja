@@ -17,7 +17,6 @@ import dfs.DFS;
 import dfs.MyDFS;
 
 public class JUnitTests {
-	
 	/*
 	 * REQUIREMENTS
 	 * 
@@ -87,11 +86,11 @@ public class JUnitTests {
 		DFileID dfid = myDFS.createDFile();
 		myDFS.write(dfid, writeFromBuffer, 0, writeFromBuffer.length);
 		byte[] readToBuffer = new byte[writeFromBuffer.length];
-		myDFS.read(dfid, readToBuffer, readOffset, readToBuffer.length);
+		myDFS.read(dfid, readToBuffer, readOffset, readToBuffer.length-readOffset);
 		
 
 		for(int i = 0;i<readToBuffer.length-readOffset;i++){
-			assertTrue(readToBuffer[i]==writeFromBuffer[i+readOffset]);
+			assertTrue(readToBuffer[i+readOffset]==writeFromBuffer[i]);
 		}
 		
 		
@@ -107,8 +106,8 @@ public class JUnitTests {
 	}
 	
 	/*
-	 * Run this test to set up the file system for testing for persistence.  Then run only testPersistence() 
-	 * right afterwards
+	 * Run this test individually to set up the file system for testing for persistence.  Then run only 
+	 * testPersistence() individually right afterwards
 	 */
 	@Ignore
 	@Test
@@ -122,7 +121,7 @@ public class JUnitTests {
 		assertTrue(myDFS.listAllDFiles().size()==1);
 	}
 	/*
-	 * Run this after running setUpTestPersistence()
+	 * Run this individually after running setUpTestPersistence()
 	 */
 	@Ignore
 	@Test
@@ -237,9 +236,10 @@ public class JUnitTests {
 	public void testVeryLargeFiles() throws IllegalArgumentException, FileNotFoundException, IOException{
 		
 		myDFS.format();
-		int twoExponent = 8;
+		int twoExponent = 15;
 		byte[] bigByteArray = new byte[(int) Math.pow(2, twoExponent)];
 		for(int i = 0;i<bigByteArray.length;i++){
+//			bigByteArray[i]=(byte) ('0'+(i%10));
 			bigByteArray[i]='1';
 		}
 		DFileID dfid = myDFS.createDFile();
